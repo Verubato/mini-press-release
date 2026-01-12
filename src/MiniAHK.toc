@@ -1,0 +1,12 @@
+## Interface: 120001, 120000, 110207, 50503, 40402, 38000, 30405, 20505, 11508
+## Title: MiniAHK
+## Notes: Makes key presses invoke the action on both key down and up.
+## Author: Verz
+## Version: 1.0.0
+## IconTexture: Interface\AddOns\MiniAHK\icon.blp
+## SavedVariables: MiniAHKDB
+## X-Curse-Project-ID: 1427615
+
+MiniFramework.lua
+Config.lua
+MiniAHK.lua

@@ -56,7 +56,6 @@ function M:Init()
 	enabledChkBox:SetPoint("TOPLEFT", description, "BOTTOMLEFT", 0, -verticalSpacing)
 
 	mini:RegisterSlashCommand(category, panel, {
-		"/miniahk",
-		"/mahk",
+		"/miniap",
 	})
 end

@@ -3,7 +3,7 @@
 ## Notes: Makes key presses invoke actions on both key down and up.
 ## Author: Verz
 ## Version: 1.1.0
-## IconTexture: Interface\AddOns\MiniActionPress\icon.blp
+## IconTexture: Interface\AddOns\MiniActionPress\Icon.blp
 ## SavedVariables: MiniActionPressDB
 ## X-Curse-Project-ID: 1427615
 

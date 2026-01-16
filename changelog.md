@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.0
+
+- Added inclusion and exclusion lists feature.
+- Added mouse click feature.
+
 ## 1.2.0
 
 Updated icon.

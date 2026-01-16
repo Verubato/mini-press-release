@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.1
+
+- Wording update.
+
 ## 2.0.0
 
 - Added inclusion and exclusion lists feature.

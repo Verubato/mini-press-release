@@ -2,7 +2,7 @@
 ## Title: MiniPressRelease
 ## Notes: Makes key presses and mouse clicks invoke actions on both down and up.
 ## Author: Verz
-## Version: 2.0.0
+## Version: 2.0.1
 ## IconTexture: Interface\AddOns\MiniPressRelease\Icon.blp
 ## SavedVariables: MiniPressReleaseDB
 ## SavedVariablesPerCharacter: MiniPressReleaseCharDB

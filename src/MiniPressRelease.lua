@@ -17,11 +17,15 @@ addon.Binds = {
 }
 
 function addon:IsKeyIncluded(key)
-	if charDb.Inclusions and next(charDb.Inclusions) then
+	if charDb.InclusionsEnabled then
 		return charDb.Inclusions[key] == true
 	end
 
-	return charDb.Exclusions[key] ~= true
+	if charDb.ExclusionsEnabled then
+		return charDb.Exclusions[key] ~= true
+	end
+
+	return true
 end
 
 function addon:Refresh()

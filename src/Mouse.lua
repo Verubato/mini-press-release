@@ -4,6 +4,7 @@ local mini = addon.Framework
 local eventsFrame
 local overlays = {}
 local maxButtonsCount = 12
+local initialised = false
 ---@type CharDb
 local charDb
 ---@class MouseModule
@@ -169,6 +170,10 @@ local function OnEvent()
 end
 
 function M:Refresh()
+	if not initialised then
+		return
+	end
+
 	if not charDb.MouseEnabled then
 		for _, overlay in ipairs(overlays) do
 			overlay:Hide()
@@ -206,4 +211,6 @@ function M:Init()
 	eventsFrame:RegisterEvent("UPDATE_BINDINGS")
 
 	eventsFrame:SetScript("OnEvent", OnEvent)
+
+	initialised = true
 end

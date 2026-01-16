@@ -4,6 +4,7 @@ local mini = addon.Framework
 local verticalSpacing = mini.VerticalSpacing
 local horizontalSpacing = mini.HorizontalSpacing
 local rowHeight = 22
+local checkboxWidth = 180
 local firstColumnWidth = 200
 local secondColumnWidth = 80
 ---@type CharDb
@@ -13,8 +14,10 @@ local charDbDefaults = {
 	Version = 1,
 	KeyboardEnabled = true,
 	MouseEnabled = true,
-	Exclusions = {},
+	InclusionsEnabled = false,
+	ExclusionsEnabled = false,
 	Inclusions = {},
+	Exclusions = {},
 }
 ---@class Config
 local M = {
@@ -177,14 +180,11 @@ end
 
 local function CreateInclusions(parent)
 	local container = CreateFrame("Frame", nil, parent)
-	container:SetSize(firstColumnWidth + secondColumnWidth + horizontalSpacing * 2, 200)
+	container:SetSize(firstColumnWidth + secondColumnWidth + horizontalSpacing * 2, 400)
 
-	local description = mini:TextBlock({
+	local description = mini:TextLine({
 		Parent = container,
-		Lines = {
-			"A set of keybindings to include.",
-			"Note if you set both inclusions and exclusions, then only inclusions will be used.",
-		},
+		Text = "A set of keybindings to include.",
 	})
 
 	description:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
@@ -228,7 +228,7 @@ end
 
 local function CreateExclusions(parent)
 	local container = CreateFrame("Frame", nil, parent)
-	container:SetSize(firstColumnWidth + secondColumnWidth + horizontalSpacing * 2, 200)
+	container:SetSize(firstColumnWidth + secondColumnWidth + horizontalSpacing * 2, 400)
 
 	local description = mini:TextLine({
 		Parent = container,
@@ -338,33 +338,73 @@ function M:Init()
 		end,
 	})
 
-	mouseEnabledChkBox:SetPoint("LEFT", kbEnabledChkBox.Text, "RIGHT", horizontalSpacing, 0)
-
-	local inclusionsDivider = mini:Divider({
-		Text = "Inclusions",
-		Parent = panel,
-	})
-
-	inclusionsDivider:SetPoint("TOP", mouseEnabledChkBox, "BOTTOM", 0, -verticalSpacing)
-	inclusionsDivider:SetPoint("LEFT", panel, "LEFT", 0, 0)
-	inclusionsDivider:SetPoint("RIGHT", panel, "RIGHT", -horizontalSpacing, 0)
+	mouseEnabledChkBox:SetPoint("LEFT", kbEnabledChkBox, "RIGHT", checkboxWidth, 0)
 
 	local inclusions = CreateInclusions(panel)
-
-	inclusions:SetPoint("TOPLEFT", inclusionsDivider, "BOTTOMLEFT", 0, -verticalSpacing / 2)
-
-	local exclusionsDivider = mini:Divider({
-		Text = "Exclusions",
-		Parent = panel,
-	})
-
-	exclusionsDivider:SetPoint("TOP", inclusions, "BOTTOM", 0, -verticalSpacing)
-	exclusionsDivider:SetPoint("LEFT", panel, "LEFT", 0, 0)
-	exclusionsDivider:SetPoint("RIGHT", panel, "RIGHT", -horizontalSpacing, 0)
-
 	local exclusions = CreateExclusions(panel)
 
-	exclusions:SetPoint("TOPLEFT", exclusionsDivider, "BOTTOMLEFT", 0, -verticalSpacing / 2)
+	local function RefreshFilters()
+		if charDb.InclusionsEnabled then
+			inclusions:Show()
+		else
+			inclusions:Hide()
+		end
+
+		if charDb.ExclusionsEnabled then
+			exclusions:Show()
+		else
+			exclusions:Hide()
+		end
+
+		addon:Refresh()
+	end
+
+	local exclusionsEnabled
+	local inclusionsEnabled
+
+	inclusionsEnabled = mini:Checkbox({
+		Parent = panel,
+		LabelText = "Include mode?",
+		GetValue = function()
+			return charDb.InclusionsEnabled
+		end,
+		SetValue = function(value)
+			charDb.InclusionsEnabled = value
+
+			if value then
+				charDb.ExclusionsEnabled = false
+				exclusionsEnabled:MiniRefresh()
+			end
+
+			RefreshFilters()
+		end,
+	})
+
+	inclusionsEnabled:SetPoint("TOPLEFT", kbEnabledChkBox, "BOTTOMLEFT", 0, -verticalSpacing / 2)
+
+	exclusionsEnabled = mini:Checkbox({
+		Parent = panel,
+		LabelText = "Exclude mode?",
+		GetValue = function()
+			return charDb.ExclusionsEnabled
+		end,
+		SetValue = function(value)
+			charDb.ExclusionsEnabled = value
+
+			if value then
+				charDb.InclusionsEnabled = false
+				inclusionsEnabled:MiniRefresh()
+			end
+
+			RefreshFilters()
+		end,
+	})
+
+	exclusionsEnabled:SetPoint("LEFT", inclusionsEnabled, "RIGHT", checkboxWidth, 0)
+	inclusions:SetPoint("TOPLEFT", inclusionsEnabled, "BOTTOMLEFT", 0, -verticalSpacing / 2)
+	exclusions:SetPoint("TOPLEFT", inclusionsEnabled, "BOTTOMLEFT", 0, -verticalSpacing / 2)
+
+	RefreshFilters()
 
 	mini:RegisterSlashCommand(category, panel, {
 		"/minipr",

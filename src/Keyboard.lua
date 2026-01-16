@@ -7,6 +7,7 @@ local maxBarButtons = 12
 local eventsFrame
 local binderFrame
 local proxyButtons = {}
+local initialised
 ---@class KeyboardModule
 local M = {}
 addon.Keyboard = M
@@ -66,6 +67,10 @@ local function OnEvent()
 end
 
 function M:Refresh()
+	if not initialised then
+		return
+	end
+
 	-- clear previous bindings
 	ClearOverrideBindings(binderFrame)
 
@@ -89,4 +94,6 @@ function M:Init()
 	eventsFrame:RegisterEvent("PLAYER_LOGIN")
 	eventsFrame:RegisterEvent("UPDATE_BINDINGS")
 	eventsFrame:SetScript("OnEvent", OnEvent)
+
+	initialised = true
 end

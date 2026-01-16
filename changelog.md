@@ -1,12 +1,16 @@
 # Changelog
 
+## 2.0.3
+
+Event registration bug fix for non-Midnight clients.
+
 ## 2.0.2
 
-- Fixed issue when housing mode editor is open.
+Fixed issue when housing mode editor is open.
 
 ## 2.0.1
 
-- Wording update.
+Wording update.
 
 ## 2.0.0
 

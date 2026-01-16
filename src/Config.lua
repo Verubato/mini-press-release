@@ -12,7 +12,7 @@ local charDb
 local charDbDefaults = {
 	Version = 1,
 	KeyboardEnabled = true,
-	MouseEnabled = true,
+	MouseEnabled = false,
 	InclusionsEnabled = false,
 	ExclusionsEnabled = false,
 	Inclusions = {},

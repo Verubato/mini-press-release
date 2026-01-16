@@ -236,8 +236,8 @@ function M:Refresh()
 			if overlay then
 				local binding = bind.Bind .. i
 				local primaryKey, secondaryKey = GetBindingKey(binding)
-				local included = (primaryKey and addon:IsKeyIncluded(primaryKey))
-					or (secondaryKey and addon:IsKeyIncluded(secondaryKey))
+				local included = (not primaryKey or addon:IsKeyIncluded(primaryKey))
+					or (not secondaryKey or addon:IsKeyIncluded(secondaryKey))
 
 				if included then
 					overlay:Show()

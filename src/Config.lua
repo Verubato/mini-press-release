@@ -1,5 +1,5 @@
+---@type string, Addon
 local addonName, addon = ...
----@type MiniFramework
 local mini = addon.Framework
 local verticalSpacing = mini.VerticalSpacing
 local horizontalSpacing = mini.VerticalSpacing
@@ -8,13 +8,30 @@ local db
 ---@class Db
 local dbDefaults = {
 	Version = 2,
-	Enabled = true,
+	KeyboardEnabled = true,
+	MouseEnabled = true,
 	Exclusions = {},
 }
+---@class Config
 local M = {
 	DbDefaults = dbDefaults,
 }
 addon.Config = M
+
+local function GetAndUpgradeDb()
+	local vars = mini:GetSavedVars(dbDefaults)
+
+	while vars.Version ~= dbDefaults.Version do
+		if not vars.Version or vars.Version == 1 then
+			vars.KeyboardEnabled = vars.Enabled
+			vars.MouseEnabled = vars.Enabled
+
+			vars.Version = 2
+		end
+	end
+
+	return vars
+end
 
 local function NormaliseBindingKey(key)
 	if not key or key == "" then
@@ -229,7 +246,7 @@ local function CreateExclusions(parent)
 end
 
 function M:Init()
-	db = mini:GetSavedVars(dbDefaults)
+	db = GetAndUpgradeDb()
 
 	local panel = CreateFrame("Frame")
 	panel.name = addonName
@@ -249,12 +266,12 @@ function M:Init()
 	description:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
 	description:SetText("Increase your chance at landing spells.")
 
-	local enabledChkBox = mini:Checkbox({
+	local kbEnabledChkBox = mini:Checkbox({
 		Parent = panel,
-		LabelText = "Enabled",
-		Tooltip = "Whether to enable/disable the addon functionality.",
+		LabelText = "Keyboard Enabled",
+		Tooltip = "Whether to enable/disable the keyboard functionality.",
 		GetValue = function()
-			return db.Enabled
+			return db.KeyboardEnabled
 		end,
 		SetValue = function(enabled)
 			if InCombatLockdown() then
@@ -262,17 +279,39 @@ function M:Init()
 				return
 			end
 
-			db.Enabled = enabled
+			db.KeyboardEnabled = enabled
 
 			addon:Refresh()
 		end,
 	})
 
-	enabledChkBox:SetPoint("TOPLEFT", description, "BOTTOMLEFT", 0, -verticalSpacing)
+	kbEnabledChkBox:SetPoint("TOPLEFT", description, "BOTTOMLEFT", 0, -verticalSpacing)
+
+	local mouseEnabledChkBox = mini:Checkbox({
+		Parent = panel,
+		LabelText = "Mouse Enabled",
+		Tooltip = "Whether to enable/disable the mouse functionality.",
+		GetValue = function()
+			return db.MouseEnabled
+		end,
+		SetValue = function(enabled)
+			if InCombatLockdown() then
+				mini:NotifyCombatLockdown()
+				return
+			end
+
+			db.MouseEnabled = enabled
+
+			addon:Refresh()
+		end,
+	})
+
+	mouseEnabledChkBox:SetPoint("LEFT", kbEnabledChkBox.Text, "RIGHT", horizontalSpacing, 0)
 
 	local exclusions = CreateExclusions(panel)
 
-	exclusions:SetPoint("TOPLEFT", enabledChkBox, "BOTTOMLEFT", 0, -verticalSpacing)
+	exclusions:SetPoint("TOP", kbEnabledChkBox, "BOTTOM", 0, -verticalSpacing)
+	exclusions:SetPoint("LEFT", title, "LEFT", 0, 0)
 
 	mini:RegisterSlashCommand(category, panel, {
 		"/minipr",

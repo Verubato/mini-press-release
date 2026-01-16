@@ -9,4 +9,6 @@
 
 MiniFramework.lua
 Config.lua
+Mouse.lua
+Keyboard.lua
 MiniPressRelease.lua

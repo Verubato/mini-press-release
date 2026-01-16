@@ -48,11 +48,11 @@ local function ConfigureButton(prefix, bindPrefix, id)
 	local proxy = GetOrCreateProxy(buttonName)
 	proxy:SetAttribute("clickbutton", btn)
 
-	if primaryKey and not addon:IsExcludedKey(primaryKey) then
+	if primaryKey and addon:IsKeyIncluded(primaryKey) then
 		SetOverrideBindingClick(binderFrame, true, primaryKey, proxy:GetName())
 	end
 
-	if secondaryKey and not addon:IsExcludedKey(secondaryKey) then
+	if secondaryKey and addon:IsKeyIncluded(secondaryKey) then
 		SetOverrideBindingClick(binderFrame, true, secondaryKey, proxy:GetName())
 	end
 end

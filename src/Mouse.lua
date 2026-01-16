@@ -185,10 +185,10 @@ function M:Refresh()
 			if overlay then
 				local binding = bind.Bind .. i
 				local primaryKey, secondaryKey = GetBindingKey(binding)
-				local excluded = (primaryKey and addon:IsExcludedKey(primaryKey))
-					or (secondaryKey and addon:IsExcludedKey(secondaryKey))
+				local included = (primaryKey and addon:IsKeyIncluded(primaryKey))
+					or (secondaryKey and addon:IsKeyIncluded(secondaryKey))
 
-				if not excluded then
+				if included then
 					overlay:Show()
 				else
 					overlay:Hide()

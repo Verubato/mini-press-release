@@ -16,12 +16,12 @@ addon.Binds = {
 	{ Prefix = "MultiBar7Button", Bind = "MULTIACTIONBAR7BUTTON" },
 }
 
-function addon:IsExcludedKey(key)
-	if not db.Exclusions then
-		return false
+function addon:IsKeyIncluded(key)
+	if db.Inclusions and next(db.Inclusions) then
+		return db.Inclusions[key] == true
 	end
 
-	return db.Exclusions[key] == true
+	return db.Exclusions[key] ~= true
 end
 
 function addon:Refresh()
@@ -46,7 +46,7 @@ end
 mini:WaitForAddonLoad(OnAddonLoaded)
 
 ---@class Addon
----@field IsExcludedKey fun(self: table, key: string): boolean
+---@field IsKeyIncluded fun(self: table, key: string): boolean
 ---@field Refresh fun(self: table)
 ---@field Binds Binds
 ---@field Framework MiniFramework

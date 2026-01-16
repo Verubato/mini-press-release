@@ -3,6 +3,9 @@ local addonName, addon = ...
 local mini = addon.Framework
 local verticalSpacing = mini.VerticalSpacing
 local horizontalSpacing = mini.HorizontalSpacing
+local rowHeight = 22
+local firstColumnWidth = 200
+local secondColumnWidth = 80
 ---@type Db
 local db
 ---@class Db
@@ -11,6 +14,7 @@ local dbDefaults = {
 	KeyboardEnabled = true,
 	MouseEnabled = true,
 	Exclusions = {},
+	Inclusions = {},
 }
 ---@class Config
 local M = {
@@ -168,20 +172,64 @@ local function CreateCaptureZone(parent, editBoxWidth, buttonWidth, onKeySelecte
 	return container
 end
 
-local function CreateExclusions(parent)
-	local rowHeight = 22
-	local firstColumnWidth = 200
-	local secondColumnWidth = 80
-
+local function CreateInclusions(parent)
 	local container = CreateFrame("Frame", nil, parent)
 	container:SetSize(firstColumnWidth + secondColumnWidth + horizontalSpacing * 2, 200)
 
 	local description = mini:TextBlock({
 		Parent = container,
 		Lines = {
-			"A set of keybindings to exclude.",
+			"A set of keybindings to include.",
 			"Note if you set both inclusions and exclusions, then only inclusions will be used.",
 		},
+	})
+
+	description:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
+
+	local list = mini:List({
+		Parent = container,
+		RowWidth = firstColumnWidth + secondColumnWidth + horizontalSpacing,
+		RowHeight = rowHeight,
+		OnRemove = function(key)
+			db.Inclusions[key] = nil
+			addon:Refresh()
+		end,
+	})
+
+	local capture = CreateCaptureZone(container, firstColumnWidth, secondColumnWidth, function(keyString)
+		db.Inclusions = db.Inclusions or {}
+		db.Inclusions[keyString] = true
+
+		local keys = {}
+		for k in pairs(db.Inclusions) do
+			table.insert(keys, k)
+		end
+
+		list:SetItems(keys)
+		addon:Refresh()
+	end)
+
+	capture:SetPoint("TOPLEFT", description, "BOTTOMLEFT", 0, -verticalSpacing / 2)
+
+	list.ScrollFrame:SetPoint("TOPLEFT", capture, "BOTTOMLEFT", 4, -verticalSpacing)
+
+	local keys = {}
+	for k in pairs(db.Inclusions) do
+		table.insert(keys, k)
+	end
+
+	list:SetItems(keys)
+
+	return container
+end
+
+local function CreateExclusions(parent)
+	local container = CreateFrame("Frame", nil, parent)
+	container:SetSize(firstColumnWidth + secondColumnWidth + horizontalSpacing * 2, 200)
+
+	local description = mini:TextLine({
+		Parent = container,
+		Text = "A set of keybindings to exclude.",
 	})
 
 	description:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
@@ -240,9 +288,12 @@ function M:Init()
 	title:SetPoint("TOPLEFT", 0, -verticalSpacing)
 	title:SetText(string.format("%s - %s", addonName, version))
 
-	local description = panel:CreateFontString(nil, "ARTWORK", "GameFontWhite")
+	local description = mini:TextLine({
+		Parent = panel,
+		Text = "Increase your chance at landing spells.",
+	})
+
 	description:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
-	description:SetText("Increase your chance at landing spells.")
 
 	local kbEnabledChkBox = mini:Checkbox({
 		Parent = panel,
@@ -286,12 +337,25 @@ function M:Init()
 
 	mouseEnabledChkBox:SetPoint("LEFT", kbEnabledChkBox.Text, "RIGHT", horizontalSpacing, 0)
 
+	local inclusionsDivider = mini:Divider({
+		Text = "Inclusions",
+		Parent = panel,
+	})
+
+	inclusionsDivider:SetPoint("TOP", mouseEnabledChkBox, "BOTTOM", 0, -verticalSpacing)
+	inclusionsDivider:SetPoint("LEFT", panel, "LEFT", 0, 0)
+	inclusionsDivider:SetPoint("RIGHT", panel, "RIGHT", -horizontalSpacing, 0)
+
+	local inclusions = CreateInclusions(panel)
+
+	inclusions:SetPoint("TOPLEFT", inclusionsDivider, "BOTTOMLEFT", 0, -verticalSpacing / 2)
+
 	local exclusionsDivider = mini:Divider({
 		Text = "Exclusions",
 		Parent = panel,
 	})
 
-	exclusionsDivider:SetPoint("TOP", mouseEnabledChkBox, "BOTTOM", 0, -verticalSpacing)
+	exclusionsDivider:SetPoint("TOP", inclusions, "BOTTOM", 0, -verticalSpacing)
 	exclusionsDivider:SetPoint("LEFT", panel, "LEFT", 0, 0)
 	exclusionsDivider:SetPoint("RIGHT", panel, "RIGHT", -horizontalSpacing, 0)
 

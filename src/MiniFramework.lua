@@ -749,17 +749,17 @@ function M:List(options)
 
 	local api = {}
 
-	function api:Add(item)
+	function api.Add(_, item)
 		table.insert(items, item)
 		Refresh()
 	end
 
-	function api:SetItems(newItems)
+	function api.SetItems(_, newItems)
 		items = newItems or {}
 		Refresh()
 	end
 
-	function api:GetItems()
+	function api.GetItems(_)
 		return items
 	end
 

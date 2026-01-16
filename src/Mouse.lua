@@ -5,11 +5,52 @@ local eventsFrame
 local overlays = {}
 local maxButtonsCount = 12
 local initialised = false
+local cursorHoldingAction = false
+local cursorCheckQueued
 ---@type CharDb
 local charDb
 ---@class MouseModule
 local M = {}
 addon.Mouse = M
+
+local function CursorHasAnything()
+	local infoType = GetCursorInfo()
+	if infoType then
+		return true
+	end
+
+	return (CursorHasItem and CursorHasItem())
+		or (CursorHasSpell and CursorHasSpell())
+		or (CursorHasMacro and CursorHasMacro())
+		or (CursorHasMoney and CursorHasMoney())
+end
+
+local function ApplyCursorState()
+	cursorHoldingAction = CursorHasAnything()
+
+	-- if the cursor is holding a spell/action, they might be dragging it onto action bars
+	-- disable our overlays in this case otherwise it has the behaviour of dropping the spell on mouse down
+	-- then immediately picking the spell back up on mouse up
+	for _, overlay in pairs(overlays) do
+		overlay:EnableMouse(not cursorHoldingAction)
+	end
+end
+
+local function QueueCursorCheck()
+	if cursorCheckQueued then
+		return
+	end
+
+	cursorCheckQueued = true
+
+	-- we need to wait a frame for blizzard to update it's internal state about the cursor state
+	-- this solves a bug where you drag a spell onto an existing spell which places the previous spell onto the cursor
+	-- and without waiting the cursor state reports nothing is on it
+	C_Timer.After(0, function()
+		cursorCheckQueued = false
+		ApplyCursorState()
+	end)
+end
 
 local function HideTooltip()
 	if GameTooltip then
@@ -161,8 +202,9 @@ local function EnsureOverlay(button, prefix, id)
 	return overlay
 end
 
-local function OnEvent()
-	if InCombatLockdown() then
+local function OnEvent(_, event)
+	if event == "CURSOR_CHANGED" then
+		QueueCursorCheck()
 		return
 	end
 
@@ -174,8 +216,12 @@ function M:Refresh()
 		return
 	end
 
+	if InCombatLockdown() then
+		return
+	end
+
 	if not charDb.MouseEnabled then
-		for _, overlay in ipairs(overlays) do
+		for _, overlay in pairs(overlays) do
 			overlay:Hide()
 		end
 
@@ -209,6 +255,7 @@ function M:Init()
 	eventsFrame = CreateFrame("Frame")
 	eventsFrame:RegisterEvent("PLAYER_LOGIN")
 	eventsFrame:RegisterEvent("UPDATE_BINDINGS")
+	eventsFrame:RegisterEvent("CURSOR_CHANGED")
 
 	eventsFrame:SetScript("OnEvent", OnEvent)
 

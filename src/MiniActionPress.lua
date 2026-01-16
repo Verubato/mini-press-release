@@ -18,6 +18,14 @@ local bars = {
 local binderFrame
 local proxyButtons = {}
 
+local function IsExcludedKey(key)
+	if not db.Exclusions then
+		return
+	end
+
+	return db.Exclusions[key] == true
+end
+
 local function GetOrCreateProxy(buttonName)
 	local proxy = proxyButtons[buttonName]
 
@@ -39,7 +47,6 @@ end
 
 local function ConfigureButton(prefix, bindPrefix, id)
 	local buttonName = prefix .. id
-
 	local btn = _G[buttonName]
 
 	if not btn then
@@ -56,16 +63,16 @@ local function ConfigureButton(prefix, bindPrefix, id)
 	local proxy = GetOrCreateProxy(buttonName)
 	proxy:SetAttribute("clickbutton", btn)
 
-	if primaryKey then
+	if primaryKey and not IsExcludedKey(primaryKey) then
 		SetOverrideBindingClick(binderFrame, true, primaryKey, proxy:GetName())
 	end
 
-	if secondaryKey then
+	if secondaryKey and not IsExcludedKey(secondaryKey) then
 		SetOverrideBindingClick(binderFrame, true, secondaryKey, proxy:GetName())
 	end
 end
 
-function addon:Run()
+function addon:Refresh()
 	if InCombatLockdown() then
 		mini:NotifyCombatLockdown()
 		return
@@ -99,10 +106,10 @@ local function OnAddonLoaded()
 	eventsFrame:SetScript("OnEvent", function(_, event)
 		if event == "PLAYER_LOGIN" then
 			-- bindings should have been loaded by now, apply our overrides
-			addon:Run()
+			addon:Refresh()
 		elseif event == "UPDATE_BINDINGS" then
 			-- user has updated a keybinding, re-apply overrides
-			addon:Run()
+			addon:Refresh()
 		end
 	end)
 end

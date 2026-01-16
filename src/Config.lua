@@ -4,7 +4,6 @@ local mini = addon.Framework
 local verticalSpacing = mini.VerticalSpacing
 local horizontalSpacing = mini.HorizontalSpacing
 local rowHeight = 22
-local checkboxWidth = 200
 local firstColumnWidth = 200
 local secondColumnWidth = 100
 ---@type CharDb
@@ -367,7 +366,7 @@ function M:Init()
 
 	inclusionsEnabled = mini:Checkbox({
 		Parent = panel,
-		LabelText = "Include mode?",
+		LabelText = "Include Mode",
 		GetValue = function()
 			return charDb.InclusionsEnabled
 		end,
@@ -387,7 +386,7 @@ function M:Init()
 
 	exclusionsEnabled = mini:Checkbox({
 		Parent = panel,
-		LabelText = "Exclude mode?",
+		LabelText = "Exclude Mode",
 		GetValue = function()
 			return charDb.ExclusionsEnabled
 		end,
@@ -410,6 +409,7 @@ function M:Init()
 	RefreshFilters()
 
 	mini:RegisterSlashCommand(category, panel, {
+		"/minipressrelease",
 		"/minipr",
 		"/mpr",
 	})

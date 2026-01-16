@@ -87,7 +87,7 @@ local function CreateCaptureZone(parent, editBoxWidth, buttonWidth, onKeySelecte
 	container:SetSize(editBoxWidth + buttonWidth + horizontalSpacing, 30)
 
 	capture:SetSize(editBoxWidth, 30)
-	-- for some reason the edit box is off by 4 units
+	-- InputBoxTemplate has a built-in left inset of 4
 	capture:SetPoint("TOPLEFT", container, "TOPLEFT", 4, 0)
 	capture:SetAutoFocus(false)
 	capture:SetText(placeholder)
@@ -96,20 +96,33 @@ local function CreateCaptureZone(parent, editBoxWidth, buttonWidth, onKeySelecte
 
 	local pendingKey
 
-	local function SetPendingKey(keyString)
-		pendingKey = keyString
-
-		if keyString then
-			capture:SetText(keyString)
-		else
-			capture:SetText(placeholder)
-		end
-
+	local function SetDisplay(text)
+		capture:SetText(text or placeholder)
 		capture:SetCursorPosition(0)
+		capture:HighlightText(0, 0)
 	end
 
-	capture:SetScript("OnEditFocusGained", function()
+	local function SetPendingKey(keyString)
+		pendingKey = keyString
+		SetDisplay(keyString)
+	end
+
+	-- don't allow user-typed characters to appear
+	capture:SetScript("OnChar", function()
 		capture:SetText("")
+		capture:SetCursorPosition(0)
+		capture:HighlightText(0, 0)
+	end)
+
+	capture:SetScript("OnEditFocusGained", function()
+		-- blank while listening
+		capture:SetText("")
+		capture:SetCursorPosition(0)
+		capture:HighlightText(0, 0)
+	end)
+
+	capture:SetScript("OnEditFocusLost", function()
+		SetDisplay(pendingKey)
 	end)
 
 	capture:SetScript("OnEscapePressed", function()
@@ -122,11 +135,13 @@ local function CreateCaptureZone(parent, editBoxWidth, buttonWidth, onKeySelecte
 
 	capture:SetScript("OnKeyDown", function(_, key)
 		local normalised = NormaliseBindingKey(key)
-
 		if normalised then
 			SetPendingKey(normalised)
 		else
 			pendingKey = nil
+			capture:SetText("")
+			capture:SetCursorPosition(0)
+			capture:HighlightText(0, 0)
 		end
 	end)
 
@@ -134,8 +149,10 @@ local function CreateCaptureZone(parent, editBoxWidth, buttonWidth, onKeySelecte
 		if pendingKey then
 			capture:SetText(pendingKey)
 		else
-			capture:SetText(placeholder)
+			capture:SetText("")
 		end
+		capture:SetCursorPosition(0)
+		capture:HighlightText(0, 0)
 	end)
 
 	capture:SetScript("OnMouseDown", function(_, button)
@@ -143,13 +160,13 @@ local function CreateCaptureZone(parent, editBoxWidth, buttonWidth, onKeySelecte
 			return
 		end
 
-		-- exclude left as it's used to focus the box.
+		-- left click is just to focus/listen
 		if button == "LeftButton" then
+			capture:SetFocus()
 			return
 		end
 
 		local normalised = NormaliseBindingKey(button)
-
 		if normalised then
 			SetPendingKey(normalised)
 		end
@@ -167,6 +184,7 @@ local function CreateCaptureZone(parent, editBoxWidth, buttonWidth, onKeySelecte
 
 		onKeySelected(pendingKey)
 		SetPendingKey(nil)
+		capture:ClearFocus()
 	end)
 
 	return container

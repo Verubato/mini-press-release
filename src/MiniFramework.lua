@@ -695,6 +695,22 @@ function M:List(options)
 	local rows = {}
 	local items = {}
 
+	local function RefreshScrollbar()
+		-- show scroll bar if we've reached the max visible height
+		local visibleHeight = scroll:GetHeight()
+		local contentHeight = content:GetHeight()
+
+		if contentHeight <= visibleHeight then
+			if scroll.ScrollBar then
+				scroll.ScrollBar:Hide()
+			end
+		else
+			if scroll.ScrollBar then
+				scroll.ScrollBar:Show()
+			end
+		end
+	end
+
 	local function Refresh()
 		for _, row in ipairs(rows) do
 			row:Hide()
@@ -745,7 +761,10 @@ function M:List(options)
 		end
 
 		content:SetHeight(math.max(1, -y + 10))
+		RefreshScrollbar()
 	end
+
+	content:HookScript("OnShow", RefreshScrollbar)
 
 	local api = {}
 

@@ -731,7 +731,7 @@ function M:List(options)
 				row.Text:SetPoint("LEFT", 0, 0)
 
 				row.Remove = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
-				row.Remove:SetSize(80, options.RowHeight - 2)
+				row.Remove:SetSize(options.RemoveButtonWidth or 80, options.RowHeight - 2)
 				row.Remove:SetPoint("RIGHT", 0, 0)
 				row.Remove:SetText("Remove")
 
@@ -1018,6 +1018,7 @@ loader:SetScript("OnEvent", OnAddonLoaded)
 ---@field RowGap number?
 ---@field RowWidth number
 ---@field RowHeight number
+---@field RemoveButtonWidth number?
 ---@field OnRemove fun(item: any)
 
 ---@class ListReturn

@@ -4,9 +4,9 @@ local mini = addon.Framework
 local verticalSpacing = mini.VerticalSpacing
 local horizontalSpacing = mini.HorizontalSpacing
 local rowHeight = 22
-local checkboxWidth = 180
+local checkboxWidth = 200
 local firstColumnWidth = 200
-local secondColumnWidth = 80
+local secondColumnWidth = 100
 ---@type CharDb
 local charDb
 ---@class CharDb
@@ -162,7 +162,7 @@ local function CreateCaptureZone(parent, editBoxWidth, buttonWidth, onKeySelecte
 
 	local addBtn = CreateFrame("Button", nil, container, "UIPanelButtonTemplate")
 	addBtn:SetSize(buttonWidth, 26)
-	addBtn:SetPoint("LEFT", capture, "RIGHT", horizontalSpacing, 0)
+	addBtn:SetPoint("LEFT", capture, "RIGHT", horizontalSpacing - 4, 0)
 	addBtn:SetText("Add")
 
 	addBtn:SetScript("OnClick", function()
@@ -193,6 +193,7 @@ local function CreateInclusions(parent)
 		Parent = container,
 		RowWidth = firstColumnWidth + secondColumnWidth + horizontalSpacing,
 		RowHeight = rowHeight,
+		RemoveButtonWidth = secondColumnWidth,
 		OnRemove = function(key)
 			charDb.Inclusions[key] = nil
 			addon:Refresh()
@@ -214,7 +215,7 @@ local function CreateInclusions(parent)
 
 	capture:SetPoint("TOPLEFT", description, "BOTTOMLEFT", 0, -verticalSpacing / 2)
 
-	list.ScrollFrame:SetPoint("TOPLEFT", capture, "BOTTOMLEFT", 4, -verticalSpacing)
+	list.ScrollFrame:SetPoint("TOPLEFT", capture, "BOTTOMLEFT", 0, -verticalSpacing)
 
 	local keys = {}
 	for k in pairs(charDb.Inclusions) do
@@ -241,6 +242,7 @@ local function CreateExclusions(parent)
 		Parent = container,
 		RowWidth = firstColumnWidth + secondColumnWidth + horizontalSpacing,
 		RowHeight = rowHeight,
+		RemoveButtonWidth = secondColumnWidth,
 		OnRemove = function(key)
 			charDb.Exclusions[key] = nil
 			addon:Refresh()
@@ -262,7 +264,7 @@ local function CreateExclusions(parent)
 
 	capture:SetPoint("TOPLEFT", description, "BOTTOMLEFT", 0, -verticalSpacing / 2)
 
-	list.ScrollFrame:SetPoint("TOPLEFT", capture, "BOTTOMLEFT", 4, -verticalSpacing)
+	list.ScrollFrame:SetPoint("TOPLEFT", capture, "BOTTOMLEFT", 0, -verticalSpacing)
 
 	local keys = {}
 	for k in pairs(charDb.Exclusions) do
@@ -286,6 +288,7 @@ function M:Init()
 		return
 	end
 
+	local col2X = firstColumnWidth + horizontalSpacing
 	local version = C_AddOns.GetAddOnMetadata(addonName, "Version")
 	local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
 	title:SetPoint("TOPLEFT", 0, -verticalSpacing)
@@ -317,7 +320,7 @@ function M:Init()
 		end,
 	})
 
-	kbEnabledChkBox:SetPoint("TOPLEFT", description, "BOTTOMLEFT", 0, -verticalSpacing)
+	kbEnabledChkBox:SetPoint("TOPLEFT", description, "BOTTOMLEFT", -4, -verticalSpacing)
 
 	local mouseEnabledChkBox = mini:Checkbox({
 		Parent = panel,
@@ -338,7 +341,7 @@ function M:Init()
 		end,
 	})
 
-	mouseEnabledChkBox:SetPoint("LEFT", kbEnabledChkBox, "RIGHT", checkboxWidth, 0)
+	mouseEnabledChkBox:SetPoint("TOPLEFT", kbEnabledChkBox, "TOPLEFT", col2X, 0)
 
 	local inclusions = CreateInclusions(panel)
 	local exclusions = CreateExclusions(panel)
@@ -400,9 +403,9 @@ function M:Init()
 		end,
 	})
 
-	exclusionsEnabled:SetPoint("LEFT", inclusionsEnabled, "RIGHT", checkboxWidth, 0)
-	inclusions:SetPoint("TOPLEFT", inclusionsEnabled, "BOTTOMLEFT", 0, -verticalSpacing / 2)
-	exclusions:SetPoint("TOPLEFT", inclusionsEnabled, "BOTTOMLEFT", 0, -verticalSpacing / 2)
+	exclusionsEnabled:SetPoint("TOPLEFT", inclusionsEnabled, "TOPLEFT", col2X, 0)
+	inclusions:SetPoint("TOPLEFT", inclusionsEnabled, "BOTTOMLEFT", 4, -verticalSpacing / 2)
+	exclusions:SetPoint("TOPLEFT", inclusionsEnabled, "BOTTOMLEFT", 4, -verticalSpacing / 2)
 
 	RefreshFilters()
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.5
+
+Disabled mouse setting by default.
+
 ## 2.0.4
 
 - Fixed bug with dragging spells onto action bars.

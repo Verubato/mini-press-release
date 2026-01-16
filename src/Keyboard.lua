@@ -56,6 +56,14 @@ local function ConfigureButton(prefix, bindPrefix, id)
 	if secondaryKey and addon:IsKeyIncluded(secondaryKey) then
 		SetOverrideBindingClick(binderFrame, true, secondaryKey, proxy:GetName())
 	end
+
+	proxy:SetScript("OnMouseDown", function()
+		btn:SetButtonState("PUSHED")
+	end)
+
+	proxy:SetScript("OnMouseUp", function()
+		btn:SetButtonState("NORMAL")
+	end)
 end
 
 local function OnEvent()

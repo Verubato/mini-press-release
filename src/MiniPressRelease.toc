@@ -1,0 +1,12 @@
+## Interface: 120001, 120000, 110207, 50503, 40402, 38000, 30405, 20505, 11508
+## Title: MiniPressRelease
+## Notes: Makes key presses and mouse clicks invoke actions on both down and up.
+## Author: Verz
+## Version: 1.2.0
+## IconTexture: Interface\AddOns\MiniPressRelease\Icon.blp
+## SavedVariables: MiniPressReleaseDB
+## X-Curse-Project-ID: 1427615
+
+MiniFramework.lua
+Config.lua
+MiniPressRelease.lua

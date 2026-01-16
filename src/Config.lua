@@ -275,6 +275,7 @@ function M:Init()
 	exclusions:SetPoint("TOPLEFT", enabledChkBox, "BOTTOMLEFT", 0, -verticalSpacing)
 
 	mini:RegisterSlashCommand(category, panel, {
-		"/miniap",
+		"/minipr",
+		"/mpr",
 	})
 end

@@ -12,6 +12,10 @@ local initialised
 local M = {}
 addon.Keyboard = M
 
+local function HasHousing()
+	return type(C_HouseEditor) == "table" and type(C_HouseEditor.IsHouseEditorActive) == "function"
+end
+
 local function IsHouseEditorOpen()
 	if not C_HouseEditor or not C_HouseEditor.IsHouseEditorActive then
 		return false
@@ -117,8 +121,10 @@ function M:Init()
 	eventsFrame:RegisterEvent("PLAYER_LOGIN")
 	eventsFrame:RegisterEvent("UPDATE_BINDINGS")
 
-	-- fired when the action bar changes, e.g. entering a vehicle or housing
-	eventsFrame:RegisterEvent("ACTION_BAR_SLOT_CHANGED")
+	if HasHousing() then
+		eventsFrame:RegisterEvent("HOUSE_EDITOR_MODE_CHANGED")
+	end
+
 	eventsFrame:SetScript("OnEvent", OnEvent)
 
 	initialised = true

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.4
+
+- Fixed bug with dragging spells onto action bars.
+- Fixed mouse click functionality that wasn't being applied to keys without key bindings.
+
 ## 2.0.3
 
 Event registration bug fix for non-Midnight clients.

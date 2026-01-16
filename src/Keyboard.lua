@@ -12,6 +12,14 @@ local initialised
 local M = {}
 addon.Keyboard = M
 
+local function IsHouseEditorOpen()
+	if not C_HouseEditor or not C_HouseEditor.IsHouseEditorActive then
+		return false
+	end
+
+	return C_HouseEditor.IsHouseEditorActive()
+end
+
 local function GetOrCreateProxy(buttonName)
 	local proxy = proxyButtons[buttonName]
 
@@ -86,6 +94,13 @@ function M:Refresh()
 		return
 	end
 
+	if IsHouseEditorOpen() then
+		-- housing editor shows a new action bar
+		-- and if we override keybindings the user won't be able to press 1-5 with the housing action bar
+		-- so don't run when the housing edit is open
+		return
+	end
+
 	for _, bind in ipairs(addon.Binds) do
 		for i = 1, maxBarButtons do
 			ConfigureButton(bind.Prefix, bind.Bind, i)
@@ -101,6 +116,9 @@ function M:Init()
 
 	eventsFrame:RegisterEvent("PLAYER_LOGIN")
 	eventsFrame:RegisterEvent("UPDATE_BINDINGS")
+
+	-- fired when the action bar changes, e.g. entering a vehicle or housing
+	eventsFrame:RegisterEvent("ACTION_BAR_SLOT_CHANGED")
 	eventsFrame:SetScript("OnEvent", OnEvent)
 
 	initialised = true

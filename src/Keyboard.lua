@@ -1,8 +1,8 @@
 ---@type string, Addon
 local addonName, addon = ...
 local mini = addon.Framework
----@type Db
-local db
+---@type CharDb
+local charDb
 local maxBarButtons = 12
 local eventsFrame
 local binderFrame
@@ -69,7 +69,7 @@ function M:Refresh()
 	-- clear previous bindings
 	ClearOverrideBindings(binderFrame)
 
-	if not db.KeyboardEnabled then
+	if not charDb.KeyboardEnabled then
 		return
 	end
 
@@ -81,7 +81,7 @@ function M:Refresh()
 end
 
 function M:Init()
-	db = mini:GetSavedVars()
+	charDb = mini:GetCharacterSavedVars()
 
 	binderFrame = CreateFrame("Frame")
 	eventsFrame = CreateFrame("Frame")

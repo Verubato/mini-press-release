@@ -5,6 +5,7 @@
 ## Version: 1.2.0
 ## IconTexture: Interface\AddOns\MiniPressRelease\Icon.blp
 ## SavedVariables: MiniPressReleaseDB
+## SavedVariablesPerCharacter: MiniPressReleaseCharDB
 ## X-Curse-Project-ID: 1427615
 
 MiniFramework.lua

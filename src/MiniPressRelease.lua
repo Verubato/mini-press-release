@@ -1,8 +1,8 @@
 ---@type string, Addon
 local _, addon = ...
 local mini = addon.Framework
----@type Db
-local db
+---@type CharDb
+local charDb
 
 ---@class Binds
 addon.Binds = {
@@ -17,11 +17,11 @@ addon.Binds = {
 }
 
 function addon:IsKeyIncluded(key)
-	if db.Inclusions and next(db.Inclusions) then
-		return db.Inclusions[key] == true
+	if charDb.Inclusions and next(charDb.Inclusions) then
+		return charDb.Inclusions[key] == true
 	end
 
-	return db.Exclusions[key] ~= true
+	return charDb.Exclusions[key] ~= true
 end
 
 function addon:Refresh()
@@ -37,7 +37,7 @@ end
 local function OnAddonLoaded()
 	addon.Config:Init()
 
-	db = mini:GetSavedVars()
+	charDb = mini:GetCharacterSavedVars()
 
 	addon.Keyboard:Init()
 	addon.Mouse:Init()

@@ -4,8 +4,8 @@ local mini = addon.Framework
 local eventsFrame
 local overlays = {}
 local maxButtonsCount = 12
----@type Db
-local db
+---@type CharDb
+local charDb
 ---@class MouseModule
 local M = {}
 addon.Mouse = M
@@ -169,7 +169,7 @@ local function OnEvent()
 end
 
 function M:Refresh()
-	if not db.MouseEnabled then
+	if not charDb.MouseEnabled then
 		for _, overlay in ipairs(overlays) do
 			overlay:Hide()
 		end
@@ -199,7 +199,7 @@ function M:Refresh()
 end
 
 function M:Init()
-	db = mini:GetSavedVars()
+	charDb = mini:GetCharacterSavedVars()
 
 	eventsFrame = CreateFrame("Frame")
 	eventsFrame:RegisterEvent("PLAYER_LOGIN")

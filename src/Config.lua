@@ -6,11 +6,11 @@ local horizontalSpacing = mini.HorizontalSpacing
 local rowHeight = 22
 local firstColumnWidth = 200
 local secondColumnWidth = 80
----@type Db
-local db
----@class Db
-local dbDefaults = {
-	Version = 2,
+---@type CharDb
+local charDb
+---@class CharDb
+local charDbDefaults = {
+	Version = 1,
 	KeyboardEnabled = true,
 	MouseEnabled = true,
 	Exclusions = {},
@@ -18,24 +18,9 @@ local dbDefaults = {
 }
 ---@class Config
 local M = {
-	DbDefaults = dbDefaults,
+	DbDefaults = charDbDefaults,
 }
 addon.Config = M
-
-local function GetAndUpgradeDb()
-	local vars = mini:GetSavedVars(dbDefaults)
-
-	while vars.Version ~= dbDefaults.Version do
-		if not vars.Version or vars.Version == 1 then
-			vars.KeyboardEnabled = vars.Enabled
-			vars.MouseEnabled = vars.Enabled
-
-			vars.Version = 2
-		end
-	end
-
-	return vars
-end
 
 local function NormaliseBindingKey(key)
 	if not key or key == "" then
@@ -209,17 +194,17 @@ local function CreateInclusions(parent)
 		RowWidth = firstColumnWidth + secondColumnWidth + horizontalSpacing,
 		RowHeight = rowHeight,
 		OnRemove = function(key)
-			db.Inclusions[key] = nil
+			charDb.Inclusions[key] = nil
 			addon:Refresh()
 		end,
 	})
 
 	local capture = CreateCaptureZone(container, firstColumnWidth, secondColumnWidth, function(keyString)
-		db.Inclusions = db.Inclusions or {}
-		db.Inclusions[keyString] = true
+		charDb.Inclusions = charDb.Inclusions or {}
+		charDb.Inclusions[keyString] = true
 
 		local keys = {}
-		for k in pairs(db.Inclusions) do
+		for k in pairs(charDb.Inclusions) do
 			table.insert(keys, k)
 		end
 
@@ -232,7 +217,7 @@ local function CreateInclusions(parent)
 	list.ScrollFrame:SetPoint("TOPLEFT", capture, "BOTTOMLEFT", 4, -verticalSpacing)
 
 	local keys = {}
-	for k in pairs(db.Inclusions) do
+	for k in pairs(charDb.Inclusions) do
 		table.insert(keys, k)
 	end
 
@@ -257,17 +242,17 @@ local function CreateExclusions(parent)
 		RowWidth = firstColumnWidth + secondColumnWidth + horizontalSpacing,
 		RowHeight = rowHeight,
 		OnRemove = function(key)
-			db.Exclusions[key] = nil
+			charDb.Exclusions[key] = nil
 			addon:Refresh()
 		end,
 	})
 
 	local capture = CreateCaptureZone(container, firstColumnWidth, secondColumnWidth, function(keyString)
-		db.Exclusions = db.Exclusions or {}
-		db.Exclusions[keyString] = true
+		charDb.Exclusions = charDb.Exclusions or {}
+		charDb.Exclusions[keyString] = true
 
 		local keys = {}
-		for k in pairs(db.Exclusions) do
+		for k in pairs(charDb.Exclusions) do
 			table.insert(keys, k)
 		end
 
@@ -280,7 +265,7 @@ local function CreateExclusions(parent)
 	list.ScrollFrame:SetPoint("TOPLEFT", capture, "BOTTOMLEFT", 4, -verticalSpacing)
 
 	local keys = {}
-	for k in pairs(db.Exclusions) do
+	for k in pairs(charDb.Exclusions) do
 		table.insert(keys, k)
 	end
 
@@ -290,7 +275,7 @@ local function CreateExclusions(parent)
 end
 
 function M:Init()
-	db = GetAndUpgradeDb()
+	charDb = mini:GetCharacterSavedVars(charDbDefaults)
 
 	local panel = CreateFrame("Frame")
 	panel.name = addonName
@@ -318,7 +303,7 @@ function M:Init()
 		LabelText = "Keyboard Enabled",
 		Tooltip = "Whether to enable/disable the keyboard functionality.",
 		GetValue = function()
-			return db.KeyboardEnabled
+			return charDb.KeyboardEnabled
 		end,
 		SetValue = function(enabled)
 			if InCombatLockdown() then
@@ -326,7 +311,7 @@ function M:Init()
 				return
 			end
 
-			db.KeyboardEnabled = enabled
+			charDb.KeyboardEnabled = enabled
 
 			addon:Refresh()
 		end,
@@ -339,7 +324,7 @@ function M:Init()
 		LabelText = "Mouse Enabled",
 		Tooltip = "Whether to enable/disable the mouse functionality.",
 		GetValue = function()
-			return db.MouseEnabled
+			return charDb.MouseEnabled
 		end,
 		SetValue = function(enabled)
 			if InCombatLockdown() then
@@ -347,7 +332,7 @@ function M:Init()
 				return
 			end
 
-			db.MouseEnabled = enabled
+			charDb.MouseEnabled = enabled
 
 			addon:Refresh()
 		end,

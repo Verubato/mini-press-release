@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.6
+
+Some combat lockdown fixes.
+
 ## 2.0.5
 
 Disabled mouse setting by default.

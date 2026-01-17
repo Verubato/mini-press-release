@@ -26,6 +26,10 @@ local function CursorHasAnything()
 end
 
 local function ApplyCursorState()
+	if InCombatLockdown() then
+		return
+	end
+
 	cursorHoldingAction = CursorHasAnything()
 
 	-- if the cursor is holding a spell/action, they might be dragging it onto action bars
@@ -37,6 +41,10 @@ local function ApplyCursorState()
 end
 
 local function QueueCursorCheck()
+	if InCombatLockdown() then
+		return
+	end
+
 	if cursorCheckQueued then
 		return
 	end

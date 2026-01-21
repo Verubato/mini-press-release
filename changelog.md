@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.1.0
+
+Added Bartender support.
+
 ## 2.0.6
 
 Some combat lockdown fixes.

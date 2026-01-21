@@ -98,39 +98,15 @@ local function ShowTooltip(overlay)
 		GameTooltip:SetOwner(overlay, "ANCHOR_RIGHT")
 	end
 
-	local prefix = overlay.Prefix
-	local id = overlay.Id
 	local button = overlay.Button
-
-	if prefix == "PetActionButton" then
-		GameTooltip:SetPetAction(id)
-		GameTooltip:Show()
-		return
-	end
-
-	if prefix == "ShapeshiftButton" then
-		GameTooltip:SetShapeshift(id)
-		GameTooltip:Show()
-		return
-	end
-
-	if prefix == "PossessButton" then
-		if GameTooltip.SetPossession then
-			GameTooltip:SetPossession(id)
-			GameTooltip:Show()
-			return
-		end
-	end
-
 	local actionSlot = GetActionForButton(button)
 
 	if actionSlot then
 		GameTooltip:SetAction(actionSlot)
 		GameTooltip:Show()
-		return
+	else
+		GameTooltip:Hide()
 	end
-
-	GameTooltip:Hide()
 end
 
 local function ApplyHoverVisuals(button, isOver)
@@ -143,6 +119,7 @@ local function ApplyHoverVisuals(button, isOver)
 	end
 
 	local hl = button.GetHighlightTexture and button:GetHighlightTexture()
+
 	if hl then
 		if isOver then
 			hl:Show()
@@ -162,10 +139,8 @@ end
 
 ---Creates the overlay button ontop of the existing button.
 ---@param button table
----@param prefix string
----@param id number
 ---@return table|nil
-local function EnsureOverlay(button, prefix, id)
+local function EnsureOverlay(button)
 	local existing = overlays[button]
 
 	if existing then
@@ -179,22 +154,19 @@ local function EnsureOverlay(button, prefix, id)
 	end
 
 	local overlay = CreateFrame("Button", name .. "MouseDownOverlay", button, "SecureActionButtonTemplate")
-	overlay:SetAllPoints(button)
-	overlay:SetFrameLevel(button:GetFrameLevel() + 10)
-	overlay:EnableMouse(true)
-	-- listen for down and up
-	overlay:RegisterForClicks("AnyDown", "AnyUp")
 	-- trigger clicks on down and up
+	overlay:RegisterForClicks("AnyDown", "AnyUp")
 	overlay:SetAttribute("pressAndHoldAction", "1")
 	overlay:SetAttribute("type", "click")
 	overlay:SetAttribute("typerelease", "click")
-	-- link to the underlying action button
+	overlay:SetAllPoints(button)
+	overlay:SetFrameLevel(button:GetFrameLevel() + 10)
+	overlay:EnableMouse(true)
 	overlay:SetAttribute("clickbutton", button)
 	overlay:Show()
 
 	overlay.Button = button
-	overlay.Prefix = prefix
-	overlay.Id = id
+	overlay.ClickButton = clickButton
 
 	overlay:SetScript("OnEnter", function()
 		ApplyHoverVisuals(button, true)
@@ -208,6 +180,28 @@ local function EnsureOverlay(button, prefix, id)
 
 	overlays[button] = overlay
 	return overlay
+end
+
+local function ApplyBlizzard()
+	for _, bind in ipairs(addon.BlizzardBinds) do
+		for i = 1, maxButtonsCount do
+			local buttonName = bind.Prefix .. i
+			local button = _G[buttonName]
+			local overlay = button and EnsureOverlay(button)
+
+			if overlay then
+				local primaryKey, secondaryKey = GetBindingKey(bind.Bind .. i)
+				local included = (not primaryKey or addon:IsKeyIncluded(primaryKey))
+					or (not secondaryKey or addon:IsKeyIncluded(secondaryKey))
+
+				if included then
+					overlay:Show()
+				else
+					overlay:Hide()
+				end
+			end
+		end
+	end
 end
 
 local function OnEvent(_, event)
@@ -232,28 +226,11 @@ function M:Refresh()
 		for _, overlay in pairs(overlays) do
 			overlay:Hide()
 		end
-
 		return
 	end
 
-	for _, bind in ipairs(addon.Binds) do
-		for i = 1, maxButtonsCount do
-			local btn = _G[bind.Prefix .. i]
-			local overlay = btn and EnsureOverlay(btn, bind.Prefix, i)
-
-			if overlay then
-				local binding = bind.Bind .. i
-				local primaryKey, secondaryKey = GetBindingKey(binding)
-				local included = (not primaryKey or addon:IsKeyIncluded(primaryKey))
-					or (not secondaryKey or addon:IsKeyIncluded(secondaryKey))
-
-				if included then
-					overlay:Show()
-				else
-					overlay:Hide()
-				end
-			end
-		end
+	if not addon.HasBartender then
+		ApplyBlizzard()
 	end
 end
 
@@ -266,6 +243,11 @@ function M:Init()
 	eventsFrame:RegisterEvent("CURSOR_CHANGED")
 
 	eventsFrame:SetScript("OnEvent", OnEvent)
+
+	if addon.HasBartender then
+		-- can't get mouse mode working nicely with bartender
+		charDb.MouseEnabled = false
+	end
 
 	initialised = true
 end

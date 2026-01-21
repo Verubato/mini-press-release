@@ -43,16 +43,14 @@ local function GetOrCreateProxy(buttonName)
 	return proxy
 end
 
-local function ConfigureButton(prefix, bindPrefix, id)
-	local buttonName = prefix .. id
+local function ConfigureButton(buttonName, bindingKey)
 	local btn = _G[buttonName]
 
 	if not btn then
 		return
 	end
 
-	local bindingAction = bindPrefix .. id
-	local primaryKey, secondaryKey = GetBindingKey(bindingAction)
+	local primaryKey, secondaryKey = GetBindingKey(bindingKey)
 
 	if not primaryKey and not secondaryKey then
 		return
@@ -105,9 +103,23 @@ function M:Refresh()
 		return
 	end
 
-	for _, bind in ipairs(addon.Binds) do
+	if addon.HasBartender then
+		local binds = addon.BartenderBinds
+		for i = 1, binds.Count do
+			local buttonName = binds.Prefix .. i
+			local bindKey = string.format("CLICK %s:LeftButton", buttonName)
+
+			ConfigureButton(buttonName, bindKey)
+		end
+	end
+
+	-- attempt blizzard bindings in any case
+	for _, bind in ipairs(addon.BlizzardBinds) do
 		for i = 1, maxBarButtons do
-			ConfigureButton(bind.Prefix, bind.Bind, i)
+			local buttonName = bind.Prefix .. i
+			local bindKey = bind.Bind .. i
+
+			ConfigureButton(buttonName, bindKey)
 		end
 	end
 end

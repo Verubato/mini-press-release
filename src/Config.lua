@@ -334,6 +334,14 @@ function M:Init()
 				return
 			end
 
+			if addon.HasBartender and enabled then
+				mini:ShowDialog({
+					Text = "Sorry, mouse mode doesn't work with Bartender.",
+				})
+
+				return
+			end
+
 			charDb.MouseEnabled = enabled
 
 			addon:Refresh()
@@ -405,6 +413,11 @@ function M:Init()
 	exclusionsEnabled:SetPoint("TOPLEFT", inclusionsEnabled, "TOPLEFT", col2X, 0)
 	inclusions:SetPoint("TOPLEFT", inclusionsEnabled, "BOTTOMLEFT", 4, -verticalSpacing / 2)
 	exclusions:SetPoint("TOPLEFT", inclusionsEnabled, "BOTTOMLEFT", 4, -verticalSpacing / 2)
+
+	panel:SetScript("OnShow", function()
+		-- settings may have been changed elsewhere
+		panel:MiniRefresh()
+	end)
 
 	RefreshFilters()
 

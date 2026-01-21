@@ -6,6 +6,7 @@
 ## IconTexture: Interface\AddOns\MiniPressRelease\Icon.blp
 ## SavedVariables: MiniPressReleaseDB
 ## SavedVariablesPerCharacter: MiniPressReleaseCharDB
+## OptionalDeps: Bartender4
 ## X-Curse-Project-ID: 1427615
 
 MiniFramework.lua

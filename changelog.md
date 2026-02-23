@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.0
+
+Bartender fixes for multi action bars.
+
 ## 2.1.0
 
 Added Bartender support.

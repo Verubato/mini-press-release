@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.1
+
+Prevent interfering with Vehicle UI.
+
 ## 2.2.0
 
 Bartender fixes for multi action bars.

@@ -179,6 +179,11 @@ function M:Refresh()
 		return
 	end
 
+	if UnitHasVehicleUI("player") then
+		-- vehicle's show a action bar
+		return
+	end
+
 	-- Snapshot BT4 bindings now, before the Blizzard section sets any override
 	-- bindings on binderFrame.  C_KeyBindings.GetBindingByKey sees the last
 	-- SetOverrideBindingClick winner for a key; if we let the Blizzard pass run

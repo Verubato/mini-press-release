@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.2
+
+Fixed include/exclude mode not working with Bartender.
+
 ## 2.2.1
 
 Prevent interfering with Vehicle UI.

@@ -179,8 +179,8 @@ function M:Refresh()
 		return
 	end
 
-	if UnitHasVehicleUI("player") then
-		-- vehicle's show a action bar
+	if C_ActionBar and C_ActionBar.HasVehicleActionBar and C_ActionBar.HasVehicleActionBar() then
+		-- vehicle action bar shown
 		return
 	end
 
@@ -251,6 +251,7 @@ function M:Init()
 
 	eventsFrame:RegisterEvent("PLAYER_LOGIN")
 	eventsFrame:RegisterEvent("UPDATE_BINDINGS")
+	eventsFrame:RegisterEvent("UPDATE_VEHICLE_ACTIONBAR")
 
 	if HasHousing() then
 		eventsFrame:RegisterEvent("HOUSE_EDITOR_MODE_CHANGED")

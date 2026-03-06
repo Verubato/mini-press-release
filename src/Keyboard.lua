@@ -207,23 +207,34 @@ function M:Refresh()
 		for buttonName, keys in pairs(bt4Bindings) do
 			local btn = _G[buttonName]
 			if btn then
-				SetupBartenderButton(btn)
-
-				local proxy = GetOrCreateProxy(buttonName)
-				proxy:SetAttribute("type", "click")
-				proxy:SetAttribute("typerelease", "click")
-				proxy:SetAttribute("clickbutton", btn)
-
-				proxy:SetScript("OnMouseDown", function()
-					btn:SetButtonState("PUSHED")
-				end)
-
-				proxy:SetScript("OnMouseUp", function()
-					btn:SetButtonState("NORMAL")
-				end)
-
+				-- Filter to included keys first.  SetupBartenderButton patches the
+				-- button to fire on release, so we must not call it for buttons
+				-- where every key is excluded — otherwise BT4's own override binding
+				-- would still fire the patched button on release.
+				local includedKeys = {}
 				for _, key in ipairs(keys) do
 					if addon:IsKeyIncluded(key) then
+						table.insert(includedKeys, key)
+					end
+				end
+
+				if #includedKeys > 0 then
+					SetupBartenderButton(btn)
+
+					local proxy = GetOrCreateProxy(buttonName)
+					proxy:SetAttribute("type", "click")
+					proxy:SetAttribute("typerelease", "click")
+					proxy:SetAttribute("clickbutton", btn)
+
+					proxy:SetScript("OnMouseDown", function()
+						btn:SetButtonState("PUSHED")
+					end)
+
+					proxy:SetScript("OnMouseUp", function()
+						btn:SetButtonState("NORMAL")
+					end)
+
+					for _, key in ipairs(includedKeys) do
 						SetOverrideBindingClick(binderFrame, true, key, proxy:GetName())
 					end
 				end

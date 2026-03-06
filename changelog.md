@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.3.0
+
+Added ElvUI support.
+
 ## 2.2.3
 
 Fixed applying bindings when vehicle UI is shown, but this only works when out of combat.

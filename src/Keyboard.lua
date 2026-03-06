@@ -3,12 +3,25 @@ local addonName, addon = ...
 local mini = addon.Framework
 ---@type CharDb
 local charDb
-local maxBarButtons = 12
 local eventsFrame
 local binderFrame
 local proxyButtons = {}
 local secureHeader = CreateFrame("Frame", nil, nil, "SecureHandlerBaseTemplate")
 local initialised
+
+-- Maps Blizzard binding-name prefixes to their action frame-name prefixes,
+-- e.g. C_KeyBindings.GetBindingByKey returns "MULTIACTIONBAR1BUTTON3" which
+-- resolves to frame "MultiBarBottomLeftButton3".
+local blizzBindToFrame = {
+	ACTIONBUTTON          = "ActionButton",
+	MULTIACTIONBAR1BUTTON = "MultiBarBottomLeftButton",
+	MULTIACTIONBAR2BUTTON = "MultiBarBottomRightButton",
+	MULTIACTIONBAR3BUTTON = "MultiBarRightButton",
+	MULTIACTIONBAR4BUTTON = "MultiBarLeftButton",
+	MULTIACTIONBAR5BUTTON = "MultiBar5Button",
+	MULTIACTIONBAR6BUTTON = "MultiBar6Button",
+	MULTIACTIONBAR7BUTTON = "MultiBar7Button",
+}
 
 ---@class KeyboardModule
 local M = {}
@@ -75,49 +88,10 @@ local function SetupBartenderButton(btn)
 	)
 end
 
-local function ConfigureButton(buttonName, bindingKey, actionSlot)
-	local btn = _G[buttonName]
-
-	if not btn then
-		return
-	end
-
-	local primaryKey, secondaryKey = GetBindingKey(bindingKey)
-
-	if not primaryKey and not secondaryKey then
-		return
-	end
-
-	if type(actionSlot) == "number" then
-		SetupBartenderButton(btn)
-	end
-
-	local proxy = GetOrCreateProxy(buttonName)
-	proxy:SetAttribute("type", "click")
-	proxy:SetAttribute("typerelease", "click")
-	proxy:SetAttribute("clickbutton", btn)
-
-	proxy:SetScript("OnMouseDown", function()
-		btn:SetButtonState("PUSHED")
-	end)
-
-	proxy:SetScript("OnMouseUp", function()
-		btn:SetButtonState("NORMAL")
-	end)
-
-	if primaryKey and addon:IsKeyIncluded(primaryKey) then
-		SetOverrideBindingClick(binderFrame, true, primaryKey, proxy:GetName())
-	end
-
-	if secondaryKey and addon:IsKeyIncluded(secondaryKey) then
-		SetOverrideBindingClick(binderFrame, true, secondaryKey, proxy:GetName())
-	end
-end
-
--- Builds a map of BT4 button name → {key, ...} by resolving every registered
--- binding through C_KeyBindings.GetBindingByKey, which (unlike GetBindingKey)
--- can see override bindings that Bartender4 sets via SetOverrideBindingClick.
-local function BuildBartenderBindings()
+-- Builds a map of action-frame name → {key, ...} for all action bar buttons by
+-- resolving every registered binding key through C_KeyBindings.GetBindingByKey,
+-- which (unlike GetBindingKey) sees override bindings set by addons like Bartender4.
+local function BuildAllBindings()
 	local result = {}
 	local seen = {}
 
@@ -132,9 +106,21 @@ local function BuildBartenderBindings()
 			return
 		end
 
-		-- Only interested in CLICK overrides targeting BT4 buttons,
-		-- e.g. "CLICK BT4Button27:LeftButton"
-		local btnName = command:match("^CLICK (BT4Button%d+):")
+		local btnName
+		if command:match("^CLICK ") then
+			-- Override binding: "CLICK BT4Button27:LeftButton" → "BT4Button27"
+			btnName = command:match("^CLICK (.-):") or command:match("^CLICK (.-)$")
+		else
+			-- Registered binding: "MULTIACTIONBAR1BUTTON3" → "MultiBarBottomLeftButton3"
+			local base, id = command:match("^(.-)(%d+)$")
+			if base and id then
+				local frame = blizzBindToFrame[base:upper()]
+				if frame then
+					btnName = frame .. id
+				end
+			end
+		end
+
 		if not btnName then
 			return
 		end
@@ -152,11 +138,12 @@ local function BuildBartenderBindings()
 	return result
 end
 
-local function OnEvent()
+local function OnEvent(_, event)
 	if InCombatLockdown() then
 		return
 	end
 
+	print("Received event: " .. event)
 	M:Refresh()
 end
 
@@ -184,59 +171,43 @@ function M:Refresh()
 		return
 	end
 
-	-- Snapshot BT4 bindings now, before the Blizzard section sets any override
-	-- bindings on binderFrame.  C_KeyBindings.GetBindingByKey sees the last
-	-- SetOverrideBindingClick winner for a key; if we let the Blizzard pass run
-	-- first it would shadow BT4's override bindings and BuildBartenderBindings
-	-- would find nothing for shared keys.
-	local bt4Bindings = addon.HasBartender and BuildBartenderBindings() or nil
+	-- Build the full binding map before setting any overrides of our own, so that
+	-- C_KeyBindings.GetBindingByKey resolves addon overrides (e.g. Bartender4) correctly.
+	local allBindings = BuildAllBindings()
 
-	-- Process Blizzard bindings first so Bartender4 can override them below
-	for _, bind in ipairs(addon.BlizzardBinds) do
-		for i = 1, maxBarButtons do
-			local buttonName = bind.Prefix .. i
-			local bindKey = bind.Bind .. i
+	for buttonName, keys in pairs(allBindings) do
+		local btn = _G[buttonName]
+		if btn then
+			-- Filter to included keys first.  SetupBartenderButton patches the
+			-- button to fire on release, so we must not call it when every key
+			-- for that button is excluded.
+			local includedKeys = {}
+			for _, key in ipairs(keys) do
+				if addon:IsKeyIncluded(key) then
+					table.insert(includedKeys, key)
+				end
+			end
 
-			ConfigureButton(buttonName, bindKey)
-		end
-	end
-
-	-- Bartender4: configure BT4 buttons after the Blizzard pass so that BT4
-	-- proxies take priority over any hidden Blizzard buttons sharing the same binding.
-	if bt4Bindings then
-		for buttonName, keys in pairs(bt4Bindings) do
-			local btn = _G[buttonName]
-			if btn then
-				-- Filter to included keys first.  SetupBartenderButton patches the
-				-- button to fire on release, so we must not call it for buttons
-				-- where every key is excluded — otherwise BT4's own override binding
-				-- would still fire the patched button on release.
-				local includedKeys = {}
-				for _, key in ipairs(keys) do
-					if addon:IsKeyIncluded(key) then
-						table.insert(includedKeys, key)
-					end
+			if #includedKeys > 0 then
+				if buttonName:match("^BT4Button%d+$") then
+					SetupBartenderButton(btn)
 				end
 
-				if #includedKeys > 0 then
-					SetupBartenderButton(btn)
+				local proxy = GetOrCreateProxy(buttonName)
+				proxy:SetAttribute("type", "click")
+				proxy:SetAttribute("typerelease", "click")
+				proxy:SetAttribute("clickbutton", btn)
 
-					local proxy = GetOrCreateProxy(buttonName)
-					proxy:SetAttribute("type", "click")
-					proxy:SetAttribute("typerelease", "click")
-					proxy:SetAttribute("clickbutton", btn)
+				proxy:SetScript("OnMouseDown", function()
+					btn:SetButtonState("PUSHED")
+				end)
 
-					proxy:SetScript("OnMouseDown", function()
-						btn:SetButtonState("PUSHED")
-					end)
+				proxy:SetScript("OnMouseUp", function()
+					btn:SetButtonState("NORMAL")
+				end)
 
-					proxy:SetScript("OnMouseUp", function()
-						btn:SetButtonState("NORMAL")
-					end)
-
-					for _, key in ipairs(includedKeys) do
-						SetOverrideBindingClick(binderFrame, true, key, proxy:GetName())
-					end
+				for _, key in ipairs(includedKeys) do
+					SetOverrideBindingClick(binderFrame, true, key, proxy:GetName())
 				end
 			end
 		end
@@ -252,6 +223,7 @@ function M:Init()
 	eventsFrame:RegisterEvent("PLAYER_LOGIN")
 	eventsFrame:RegisterEvent("UPDATE_BINDINGS")
 	eventsFrame:RegisterEvent("UPDATE_VEHICLE_ACTIONBAR")
+	eventsFrame:RegisterEvent("UPDATE_BONUS_ACTIONBAR")
 
 	if HasHousing() then
 		eventsFrame:RegisterEvent("HOUSE_EDITOR_MODE_CHANGED")

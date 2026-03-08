@@ -71,6 +71,7 @@ local function SetupAddonButton(btn)
 	btn._mprConfigured = true
 
 	local actionType = btn._state_type or btn:GetAttribute("type") or "action"
+	btn:SetAttribute("mpr_typerelease", actionType) -- store intended value so WrapScript can enforce it
 	btn:SetAttribute("pressAndHoldAction", true)
 	btn:SetAttribute("typerelease", actionType)
 
@@ -79,12 +80,16 @@ local function SetupAddonButton(btn)
 		"OnAttributeChanged",
 		secureHeader,
 		[[
-		if name == "pressandholdaction" or name == "typerelease" or name == "type" then
+		if name == "pressandholdaction" or name == "typerelease" then
 			if not self:GetAttribute("pressAndHoldAction") then
 				self:SetAttribute("pressAndHoldAction", true)
 			end
-			if not self:GetAttribute("typerelease") then
-				self:SetAttribute("typerelease", self:GetAttribute("type") or "action")
+			-- Enforce our intended typerelease value; action bar addons (e.g. Bartender4)
+			-- may override it with "actionrelease" which requires a real key-release event
+			-- and does not fire for the programmatic down=false clicks our proxy sends.
+			local intended = self:GetAttribute("mpr_typerelease")
+			if intended and self:GetAttribute("typerelease") ~= intended then
+				self:SetAttribute("typerelease", intended)
 			end
 		end
 		]]

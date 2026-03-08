@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.3.1
+
+Fixed issue with Bartender and mounts.
+
 ## 2.3.0
 
 Added ElvUI support.

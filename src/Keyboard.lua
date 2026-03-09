@@ -13,7 +13,7 @@ local initialised
 -- e.g. C_KeyBindings.GetBindingByKey returns "MULTIACTIONBAR1BUTTON3" which
 -- resolves to frame "MultiBarBottomLeftButton3".
 local blizzBindToFrame = {
-	ACTIONBUTTON          = "ActionButton",
+	ACTIONBUTTON = "ActionButton",
 	MULTIACTIONBAR1BUTTON = "MultiBarBottomLeftButton",
 	MULTIACTIONBAR2BUTTON = "MultiBarBottomRightButton",
 	MULTIACTIONBAR3BUTTON = "MultiBarRightButton",
@@ -160,7 +160,7 @@ local function BuildAllBindings()
 	return result, addonButtons
 end
 
-local function OnEvent()
+local function OnEvent(_, event)
 	if InCombatLockdown() then
 		return
 	end
@@ -187,9 +187,16 @@ function M:Refresh()
 		return
 	end
 
-	if C_ActionBar and C_ActionBar.HasVehicleActionBar and C_ActionBar.HasVehicleActionBar() then
-		-- vehicle action bar shown
-		return
+	if C_ActionBar then
+		if C_ActionBar.HasVehicleActionBar and C_ActionBar.HasVehicleActionBar() then
+			-- vehicle action bar shown
+			return
+		end
+
+		if C_ActionBar.HasOverrideActionBar and C_ActionBar.HasOverrideActionBar() then
+			-- special abilities like cameras in world quests
+			return
+		end
 	end
 
 	-- Build the full binding map before setting any overrides of our own, so that
@@ -245,6 +252,7 @@ function M:Init()
 	eventsFrame:RegisterEvent("UPDATE_BINDINGS")
 	eventsFrame:RegisterEvent("UPDATE_VEHICLE_ACTIONBAR")
 	eventsFrame:RegisterEvent("UPDATE_BONUS_ACTIONBAR")
+	eventsFrame:RegisterEvent("UPDATE_EXTRA_ACTIONBAR")
 
 	if HasHousing() then
 		eventsFrame:RegisterEvent("HOUSE_EDITOR_MODE_CHANGED")

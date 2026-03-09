@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.3.2
+
+Fixed issue with override action bar for special vehicles such as the camera world quest.
+
 ## 2.3.1
 
 Fixed issue with Bartender and mounts.

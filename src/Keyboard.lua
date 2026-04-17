@@ -234,6 +234,14 @@ function M:Refresh()
 					btn:SetButtonState("NORMAL")
 				end)
 
+				proxy:SetScript("PostClick", function(_, _, down)
+					if down then
+						btn:SetButtonState("PUSHED")
+					else
+						btn:SetButtonState("NORMAL")
+					end
+				end)
+
 				for _, key in ipairs(includedKeys) do
 					SetOverrideBindingClick(binderFrame, true, key, proxy:GetName())
 				end

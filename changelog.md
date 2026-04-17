@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.3.3
+
+Added Jaime's fix for the button state getting stuck.
+
 ## 2.3.2
 
 Fixed issue with override action bar for special vehicles such as the camera world quest.

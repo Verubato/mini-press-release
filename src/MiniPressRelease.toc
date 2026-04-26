@@ -1,4 +1,4 @@
-## Interface: 120001, 120000, 110207, 50503, 40402, 38000, 30405, 20505, 11508
+## Interface: 120005, 50503, 40402, 38000, 30405, 20505, 11508
 ## Title: MiniPressRelease
 ## Notes: Makes key presses and mouse clicks invoke actions on both down and up.
 ## Author: Verz

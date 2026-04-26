@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.4.0
+
+Added Xyz's fix for incombat override bar support.
+
 ## 2.3.3
 
 Added Jaime's fix for the button state getting stuck.

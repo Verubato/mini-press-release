@@ -48,7 +48,7 @@ local function GetOrCreateProxy(buttonName)
 
 	local name = addonName .. "_" .. buttonName
 
-	proxy = CreateFrame("Button", name, nil, "SecureActionButtonTemplate")
+	proxy = CreateFrame("Button", name, nil, "SecureActionButtonTemplate, SecureHandlerStateTemplate")
 	proxy:RegisterForClicks("AnyDown", "AnyUp")
 	proxy:SetAttribute("type", "click")
 	proxy:SetAttribute("typerelease", "click")
@@ -96,7 +96,7 @@ local function SetupAddonButton(btn)
 	)
 end
 
--- Builds a map of action-frame name → {key, ...} for all action bar buttons by
+-- Builds a map of action-frame name -> {key, ...} for all action bar buttons by
 -- resolving every registered binding key through C_KeyBindings.GetBindingByKey,
 -- which (unlike GetBindingKey) sees override bindings set by addons like Bartender4
 -- and ElvUI.
@@ -125,12 +125,12 @@ local function BuildAllBindings()
 
 		if command:match("^CLICK ") then
 			-- Override binding from an action bar addon:
-			-- "CLICK BT4Button27:LeftButton" → "BT4Button27"
-			-- "CLICK ElvUI_Bar1Button3:LeftButton" → "ElvUI_Bar1Button3"
+			-- "CLICK BT4Button27:LeftButton" -> "BT4Button27"
+			-- "CLICK ElvUI_Bar1Button3:LeftButton" -> "ElvUI_Bar1Button3"
 			btnName = command:match("^CLICK (.-):") or command:match("^CLICK (.-)$")
 			isAddonButton = true
 		else
-			-- Registered Blizzard binding: "MULTIACTIONBAR1BUTTON3" → "MultiBarBottomLeftButton3"
+			-- Registered Blizzard binding: "MULTIACTIONBAR1BUTTON3" -> "MultiBarBottomLeftButton3"
 			local base, id = command:match("^(.-)(%d+)$")
 			if base and id then
 				local frame = blizzBindToFrame[base:upper()]
@@ -161,15 +161,11 @@ local function BuildAllBindings()
 end
 
 local function OnEvent(_, event)
-	if InCombatLockdown() then
-		return
-	end
-
 	M:Refresh()
 end
 
 function M:Refresh()
-	if not initialised then
+	if not initialised or InCombatLockdown() then
 		return
 	end
 
@@ -224,7 +220,29 @@ function M:Refresh()
 				local proxy = GetOrCreateProxy(buttonName)
 				proxy:SetAttribute("type", "click")
 				proxy:SetAttribute("typerelease", "click")
-				proxy:SetAttribute("clickbutton", btn)
+
+				local actionBtnNum = tonumber(buttonName:match("^ActionButton(%d+)$"))
+				local overrideBtn = actionBtnNum and _G["OverrideActionBarButton" .. actionBtnNum]
+
+				if actionBtnNum and actionBtnNum <= 6 and overrideBtn then
+					proxy:SetFrameRef("normalBtn", btn)
+					proxy:SetFrameRef("overrideBtn", overrideBtn)
+					proxy:SetAttribute("clickbutton", btn)
+
+					proxy:SetAttribute("_onstate-overridebar", [[
+						if newstate == "true" then
+							self:SetAttribute("clickbutton", self:GetFrameRef("overrideBtn"))
+						else
+							self:SetAttribute("clickbutton", self:GetFrameRef("normalBtn"))
+						end
+					]])
+
+					RegisterStateDriver(proxy, "overridebar", "[overridebar] true; false")
+				else
+					UnregisterStateDriver(proxy, "overridebar")
+					proxy:SetAttribute("_onstate-overridebar", nil)
+					proxy:SetAttribute("clickbutton", btn)
+				end
 
 				proxy:SetScript("OnMouseDown", function()
 					btn:SetButtonState("PUSHED")
@@ -232,14 +250,6 @@ function M:Refresh()
 
 				proxy:SetScript("OnMouseUp", function()
 					btn:SetButtonState("NORMAL")
-				end)
-
-				proxy:SetScript("PostClick", function(_, _, down)
-					if down then
-						btn:SetButtonState("PUSHED")
-					else
-						btn:SetButtonState("NORMAL")
-					end
 				end)
 
 				for _, key in ipairs(includedKeys) do

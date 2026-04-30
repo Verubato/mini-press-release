@@ -219,16 +219,17 @@ function M:Refresh()
 
 	ClearOverrideBindings(binderFrame)
 
-	if not charDb.KeyboardEnabled then
-		return
-	end
-
-	-- Reset state driver so it can be cleanly re-registered below.
+	-- Always tear down the state driver so it can't re-apply stale bindings,
+	-- regardless of whether the feature is enabled.
 	UnregisterStateDriver(binderFrame, "overridebutton")
 
 	binderFrame:SetAttribute("_onstate-overridebutton", nil)
 	binderFrame:SetAttribute("mpr_override_state", "normal")
 	binderFrame:SetAttribute("mpr_count", 0)
+
+	if not charDb.KeyboardEnabled then
+		return
+	end
 
 	if IsHouseEditorOpen() then
 		return

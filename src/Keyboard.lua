@@ -94,7 +94,7 @@ local function GetOrCreateProxy(proxyKey, visualButton)
 
 	proxy:SetAttribute("type", "click")
 	proxy:SetAttribute("typerelease", "click")
-	proxy:SetAttribute("pressAndHoldAction", "1")
+	proxy:SetAttribute("pressAndHoldAction", true)
 
 	if visualButton then
 		proxy:SetScript("OnMouseDown", function()

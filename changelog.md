@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.5.0
+
+Another fix for in-combat override bar support.
+
 ## 2.4.0
 
 Added Xyz's fix for incombat override bar support.

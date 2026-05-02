@@ -80,7 +80,7 @@ end
 
 -- Returns a cached SecureActionButton that forwards clicks to the real button.
 -- If visualButton is provided, the proxy mirrors its pushed/normal visual state.
-local function GetOrCreateProxy(proxyKey, visualButton)
+local function GetOrCreateProxy(proxyKey, visualButton, override)
 	local proxy = proxyButtons[proxyKey]
 
 	if proxy then
@@ -93,8 +93,11 @@ local function GetOrCreateProxy(proxyKey, visualButton)
 	proxy:RegisterForClicks("AnyDown", "AnyUp")
 
 	proxy:SetAttribute("type", "click")
-	proxy:SetAttribute("typerelease", "click")
-	proxy:SetAttribute("pressAndHoldAction", true)
+
+	if not override then
+		proxy:SetAttribute("typerelease", "click")
+		proxy:SetAttribute("pressAndHoldAction", true)
+	end
 
 	if visualButton then
 		proxy:SetScript("OnMouseDown", function()
@@ -266,7 +269,7 @@ function M:Refresh()
 				local overrideBtn = actionBtnNum and _G["OverrideActionBarButton" .. actionBtnNum]
 
 				if actionBtnNum and actionBtnNum <= 6 and overrideBtn then
-					local overrideProxy = GetOrCreateProxy(buttonName .. "_override", overrideBtn)
+					local overrideProxy = GetOrCreateProxy(buttonName .. "_override", overrideBtn, true)
 					overrideProxy:SetAttribute("clickbutton", overrideBtn)
 					overrideProxyName = overrideProxy:GetName()
 				end

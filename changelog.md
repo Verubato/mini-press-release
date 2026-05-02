@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.6.0
+
+Disable double press functionality for override and vehicle bars.
+
 ## 2.5.0
 
 Another fix for in-combat override bar support.

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.6.1
+
+Fixed visual button press feedback not working when the action is on cooldown.
+
 ## 2.6.0
 
 Disable double press functionality for override and vehicle bars.

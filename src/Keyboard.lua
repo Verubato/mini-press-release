@@ -108,8 +108,13 @@ local function GetOrCreateProxy(proxyKey, visualButton, override)
 			visualButton:SetButtonState("NORMAL")
 		end)
 
-		proxy:SetScript("PostClick", function()
-			visualButton:SetButtonState("NORMAL")
+		-- Only reset on key-up (down=false). When an action fails (e.g. spell on cooldown),
+		-- pressAndHoldAction does not defer PostClick, so it fires immediately on key-down
+		-- and would kill the PUSHED state before it's visible.
+		proxy:SetScript("PostClick", function(_, _, down)
+			if not down then
+				visualButton:SetButtonState("NORMAL")
+			end
 		end)
 	end
 

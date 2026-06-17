@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.6.2
+
+12.0.7 TOC bump.
+
 ## 2.6.1
 
 Fixed visual button press feedback not working when the action is on cooldown.

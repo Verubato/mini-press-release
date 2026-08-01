@@ -9,7 +9,7 @@
 ## OptionalDeps: Bartender4
 ## X-Curse-Project-ID: 1427615
 
-MiniFramework.lua
+Libs\MiniFramework\MiniFramework.xml
 Config.lua
 Mouse.lua
 Keyboard.lua

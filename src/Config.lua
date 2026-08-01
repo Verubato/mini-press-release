@@ -288,17 +288,12 @@ function M:Init()
 	end
 
 	local col2X = firstColumnWidth + horizontalSpacing
-	local version = C_AddOns.GetAddOnMetadata(addonName, "Version")
-	local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-	title:SetPoint("TOPLEFT", 0, -verticalSpacing)
-	title:SetText(string.format("%s - %s", addonName, version))
-
-	local description = mini:TextLine({
+	local header = mini:PanelHeader({
 		Parent = panel,
-		Text = "Increase your chance at landing spells.",
+		Description = "Increase your chance at landing spells.",
+		Y = -verticalSpacing,
+		Gap = 8,
 	})
-
-	description:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
 
 	local kbEnabledChkBox = mini:Checkbox({
 		Parent = panel,
@@ -319,7 +314,7 @@ function M:Init()
 		end,
 	})
 
-	kbEnabledChkBox:SetPoint("TOPLEFT", description, "BOTTOMLEFT", -4, -verticalSpacing)
+	kbEnabledChkBox:SetPoint("TOPLEFT", header.Anchor, "BOTTOMLEFT", -4, -verticalSpacing)
 
 	local mouseEnabledChkBox = mini:Checkbox({
 		Parent = panel,

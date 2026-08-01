@@ -291,7 +291,6 @@ function M:Init()
 	local header = mini:PanelHeader({
 		Parent = panel,
 		Description = "Increase your chance at landing spells.",
-		Y = -verticalSpacing,
 		Gap = 8,
 	})
 

@@ -4,7 +4,6 @@
 ## Author: Verz
 ## Version: 2.7.1
 ## IconTexture: Interface\AddOns\MiniPressRelease\Icon.blp
-## SavedVariables: MiniPressReleaseDB
 ## SavedVariablesPerCharacter: MiniPressReleaseCharDB
 ## OptionalDeps: Bartender4
 ## X-Curse-Project-ID: 1427615

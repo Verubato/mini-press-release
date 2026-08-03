@@ -60,6 +60,7 @@ local blizzBindToFrame = {
 	MULTIACTIONBAR7BUTTON = "MultiBar7Button",
 }
 
+---@class Keyboard
 local M = {}
 addon.Keyboard = M
 

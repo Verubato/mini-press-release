@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.7.3
+
+Updated the addon icon to the new shared Mini style.
+
 ## 2.7.2
 
 Updated interface versions for the latest client builds.

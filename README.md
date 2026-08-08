@@ -29,7 +29,7 @@ Credit for the original idea goes to XyzKang.
 
 ## Screenshots
 
-![MiniPressRelease screenshot](https://raw.githubusercontent.com/Verubato/mini-press-release/main/assets/Screenshot.png)
+![MiniPressRelease screenshot](https://raw.githubusercontent.com/Verubato/mini-press-release/main/assets/Screenshots/Settings.png)
 
 ## Download
 

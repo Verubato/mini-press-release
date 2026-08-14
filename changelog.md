@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.7.4
+
+Dropped old retail clients support.
+
 ## 2.7.3
 
 Updated the addon icon to the new shared Mini style.

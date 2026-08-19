@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.7.6
+
+- Improved performance when key bindings change.
+- Fixed keys past the second being ignored for a command bound to more than two keys.
+
 ## 2.7.5
 
 Added a Mini category so the addon groups with the other Mini addons in the addon list.

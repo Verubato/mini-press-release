@@ -155,6 +155,34 @@ local function SetupAddonButton(btn)
 	)
 end
 
+-- Resolves a binding command to the action button frame name it drives, plus whether that
+-- button belongs to an addon. Returns nil for commands that aren't action buttons at all.
+local function ResolveCommand(command)
+	if not command then
+		return nil
+	end
+
+	if command:find("^CLICK ") then
+		-- Addon button bindings use the format "CLICK FrameName:button".
+		return command:match("^CLICK (.-):") or command:match("^CLICK (.-)$"), true
+	end
+
+	-- Blizzard action bar bindings use the format "ACTIONBUTTONn".
+	local base, id = command:match("^(.-)(%d+)$")
+
+	if not base then
+		return nil
+	end
+
+	local frame = blizzBindToFrame[base:upper()]
+
+	if not frame then
+		return nil
+	end
+
+	return frame .. id, false
+end
+
 -- Scans every Blizzard binding and resolves each bound key to an action button name.
 -- Returns two tables: all bindings (buttonName -> {keys}), and which buttons are addon buttons.
 local function BuildAllBindings()
@@ -169,28 +197,9 @@ local function BuildAllBindings()
 
 		seen[key] = true
 
-		local command = C_KeyBindings.GetBindingByKey(key)
-		if not command then
-			return
-		end
-
-		local btnName
-		local isAddonButton = false
-
-		if command:match("^CLICK ") then
-			-- Addon button bindings use the format "CLICK FrameName:button".
-			btnName = command:match("^CLICK (.-):") or command:match("^CLICK (.-)$")
-			isAddonButton = true
-		else
-			-- Blizzard action bar bindings use the format "ACTIONBUTTONn".
-			local base, id = command:match("^(.-)(%d+)$")
-			if base and id then
-				local frame = blizzBindToFrame[base:upper()]
-				if frame then
-					btnName = frame .. id
-				end
-			end
-		end
+		-- A key can be listed under one command yet owned by another, so ask which
+		-- command actually holds it rather than trusting the entry we came from.
+		local btnName, isAddonButton = ResolveCommand(C_KeyBindings.GetBindingByKey(key))
 
 		if not btnName then
 			return
@@ -205,10 +214,15 @@ local function BuildAllBindings()
 	end
 
 	for i = 1, GetNumBindings() do
-		local _, _, key1, key2 = GetBinding(i)
+		local command, _, key1, key2 = GetBinding(i)
 
-		ProcessKey(key1)
-		ProcessKey(key2)
+		-- The reverse lookup in ProcessKey is the expensive part and there are thousands
+		-- of bindings, so skip commands that can't be action buttons. A key whose real
+		-- owner is an action button is always listed under that owner's entry too.
+		if ResolveCommand(command) then
+			ProcessKey(key1)
+			ProcessKey(key2)
+		end
 	end
 
 	return result, addonButtons

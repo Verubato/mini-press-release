@@ -9,6 +9,10 @@ local initialised
 -- allowing the addon to control bindings without taint.
 local proxyButtons = {}
 
+-- Attribute names are the same every refresh, so build each one once instead of
+-- concatenating a fresh string per binding and handing the collector the garbage.
+local attributeNames = { key = {}, normal = {}, override = {} }
+
 -- Uses SecureHandlerStateTemplate so it can set bindings in combat via secure attribute callbacks.
 local binderFrame = CreateFrame("Frame", nil, nil, "SecureHandlerStateTemplate")
 
@@ -228,6 +232,21 @@ local function BuildAllBindings()
 	return result, addonButtons
 end
 
+local function SetBindingAttribute(kind, index, value)
+	local names = attributeNames[kind]
+	local name = names[index]
+
+	if not name then
+		name = "mpr_" .. kind .. index
+		names[index] = name
+	end
+
+	-- Every write is a protected call, and most refreshes rebuild the same bindings.
+	if binderFrame:GetAttribute(name) ~= value then
+		binderFrame:SetAttribute(name, value)
+	end
+end
+
 local function OnEvent()
 	M:Refresh()
 end
@@ -299,9 +318,9 @@ function M:Refresh()
 				for _, key in ipairs(includedKeys) do
 					bindingIndex = bindingIndex + 1
 
-					binderFrame:SetAttribute("mpr_key" .. bindingIndex, key)
-					binderFrame:SetAttribute("mpr_normal" .. bindingIndex, normalProxy:GetName())
-					binderFrame:SetAttribute("mpr_override" .. bindingIndex, overrideProxyName)
+					SetBindingAttribute("key", bindingIndex, key)
+					SetBindingAttribute("normal", bindingIndex, normalProxy:GetName())
+					SetBindingAttribute("override", bindingIndex, overrideProxyName)
 				end
 			end
 		end

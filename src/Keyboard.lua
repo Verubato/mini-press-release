@@ -168,7 +168,14 @@ local function ResolveCommand(command)
 
 	if command:find("^CLICK ") then
 		-- Addon button bindings use the format "CLICK FrameName:button".
-		return command:match("^CLICK (.-):") or command:match("^CLICK (.-)$"), true
+		local name = command:match("^CLICK (.-):") or command:match("^CLICK (.-)$")
+
+		-- A malformed "CLICK :LeftButton" captures an empty name, which is truthy.
+		if not name or name == "" then
+			return nil
+		end
+
+		return name, true
 	end
 
 	-- Blizzard action bar bindings use the format "ACTIONBUTTONn".
@@ -217,15 +224,22 @@ local function BuildAllBindings()
 		end
 	end
 
+	local function ProcessKeys(...)
+		for k = 1, select("#", ...) do
+			ProcessKey((select(k, ...)))
+		end
+	end
+
 	for i = 1, GetNumBindings() do
-		local command, _, key1, key2 = GetBinding(i)
+		local command = GetBinding(i)
 
 		-- The reverse lookup in ProcessKey is the expensive part and there are thousands
 		-- of bindings, so skip commands that can't be action buttons. A key whose real
 		-- owner is an action button is always listed under that owner's entry too.
 		if ResolveCommand(command) then
-			ProcessKey(key1)
-			ProcessKey(key2)
+			-- GetBinding returns every key after the category, and a command can hold more
+			-- than the two the binding UI offers.
+			ProcessKeys(select(3, GetBinding(i)))
 		end
 	end
 

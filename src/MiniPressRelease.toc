@@ -3,7 +3,7 @@
 ## Notes: Makes key presses and mouse clicks invoke actions on both down and up.
 ## Category: Mini
 ## Author: Verz
-## Version: 2.7.6
+## Version: 2.7.7
 ## IconTexture: Interface\AddOns\MiniPressRelease\Icon.blp
 ## SavedVariablesPerCharacter: MiniPressReleaseCharDB
 ## OptionalDeps: Bartender4

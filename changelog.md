@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.7.7
+
+Reduced the work the shared framework code does on paths the addons use heavily.
+
 ## 2.7.6
 
 - Improved performance when key bindings change.

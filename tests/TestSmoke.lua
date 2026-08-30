@@ -6,6 +6,12 @@ local smoke = require("SmokeTest")
 local harness = require("AddonHarness")
 local WowMock = require("WowMock")
 
+-- Mirrors mini.VerticalSpacing in src/Config.lua.
+local VERTICAL_SPACING = 16
+-- Mirror CHIP_HEIGHT and CHIP_GAP_Y in src/Config.lua.
+local CHIP_HEIGHT = 20
+local CHIP_GAP_Y = 6
+
 ---The section rule is built by the framework and never handed back to the addon, so a test
 ---finds it the way a player sees it, by its label.
 ---@param text string
@@ -46,17 +52,91 @@ local function FindPanel(name)
 	return nil
 end
 
----@return number rows belonging to any filter list that are currently shown
-local function ShownStyledRowCount()
+---@return number chips belonging to any filter list that are currently shown
+local function ShownChipCount()
 	local count = 0
 
 	for _, frame in ipairs(WowMock.Frames) do
-		if frame.Field and frame.Remove and frame:IsShown() then
+		if frame.Key ~= nil and frame.Remove and frame:IsShown() then
 			count = count + 1
 		end
 	end
 
 	return count
+end
+
+---A filter list is only reachable through the description line the widget parented to it.
+---@param text string
+---@return table?
+local function ContainerFor(text)
+	for _, frame in ipairs(WowMock.Frames) do
+		for _, region in ipairs({ frame:GetRegions() }) do
+			if region.GetText and region:GetText() == text then
+				return frame
+			end
+		end
+	end
+end
+
+---@param frame table
+---@param text string
+---@return table? the region parented directly to frame carrying this text
+local function FindRegion(frame, text)
+	for _, region in ipairs({ frame:GetRegions() }) do
+		if region.GetText and region:GetText() == text then
+			return region
+		end
+	end
+end
+
+---@param frame table
+---@return table? relativeTo, number? x, number? y the frame's own TOPLEFT point
+local function TopLeftPoint(frame)
+	for i = 1, frame:GetNumPoints() do
+		local point, relativeTo, _, x, y = frame:GetPoint(i)
+
+		if point == "TOPLEFT" then
+			return relativeTo, x, y
+		end
+	end
+end
+
+---Every filter list control is anchored by its left edge to the label naming it.
+---@param label table
+---@return table?
+local function FindControlFor(label)
+	for _, frame in ipairs(WowMock.Frames) do
+		for i = 1, frame:GetNumPoints() do
+			local point, relativeTo = frame:GetPoint(i)
+
+			if point == "LEFT" and relativeTo == label then
+				return frame
+			end
+		end
+	end
+end
+
+---@return table[] every keybinding chip currently drawn, in any filter list
+local function AllChips()
+	local chips = {}
+
+	for _, frame in ipairs(WowMock.Frames) do
+		if frame.Key ~= nil and frame.Remove and frame:IsShown() then
+			chips[#chips + 1] = frame
+		end
+	end
+
+	return chips
+end
+
+---@param key string
+---@return table? the chip drawn for this key, if one is currently drawn
+local function FindChip(key)
+	for _, chip in ipairs(AllChips()) do
+		if chip.Key == key then
+			return chip
+		end
+	end
 end
 
 ---The client does nothing with a prompt in the mock, so a test stands in for it.
@@ -103,7 +183,7 @@ smoke.Run("MiniPressRelease", {
 		panel:Hide()
 		panel:Show()
 
-		fw.eq(ShownStyledRowCount(), 1, "the pending inclusion shows as a row before the reset")
+		fw.eq(ShownChipCount(), 1, "the pending inclusion shows as a chip before the reset")
 
 		local resetBtn = FindButton("Reset to Defaults")
 		fw.not_nil(resetBtn, "reset button exists")
@@ -115,70 +195,114 @@ smoke.Run("MiniPressRelease", {
 		fw.eq(db.KeyboardEnabled, context.Addon.Config.DbDefaults.KeyboardEnabled, "reset restored KeyboardEnabled")
 		fw.is_nil(db.Inclusions["Z"], "reset restored Inclusions")
 
-		-- Turning Include Mode back on must not bring back the row the reset just cleared.
+		-- Turning Include Mode back on must not bring back the chip the reset just cleared.
 		db.InclusionsEnabled = true
 		panel:Hide()
 		panel:Show()
 
-		fw.eq(ShownStyledRowCount(), 0, "no rows survive a reset once the mode is switched back on")
+		fw.eq(ShownChipCount(), 0, "no chips survive a reset once the mode is switched back on")
 	end,
 })
 
-fw.describe("MiniPressRelease - keybinding list styling", function()
-	fw.it("builds the inclusions and exclusions lists with the styled rows", function()
+fw.describe("MiniPressRelease - keybinding chips", function()
+	---@param charDb table
+	local function LoginWith(charDb)
 		-- Seeded before Load, so WowMock's preserve-on-install keeps it as the addon's own
 		-- saved variables rather than the empty defaults a cold login would create.
-		_G["MiniPressReleaseCharDB"] = {
-			Inclusions = { A = true },
-			Exclusions = { B = true },
-		}
+		_G["MiniPressReleaseCharDB"] = charDb
 
 		local context = harness.Load("MiniPressRelease")
 		harness.Login(context)
-
-		local styledRows = 0
-
-		for _, frame in ipairs(WowMock.Frames) do
-			if frame.Field and frame.Remove then
-				styledRows = styledRows + 1
-			end
-		end
-
-		fw.eq(styledRows, 2, "one styled row per list")
-	end)
-
-	---@param count number
-	---@return number the inclusions container's own height
-	local function InclusionsHeight(count)
-		local inclusions = {}
-
-		for i = 1, count do
-			inclusions["K" .. i] = true
-		end
-
-		_G["MiniPressReleaseCharDB"] = { Inclusions = inclusions, Exclusions = {} }
-
-		local context = harness.Load("MiniPressRelease")
-		harness.Login(context)
-
-		for _, frame in ipairs(WowMock.Frames) do
-			if frame.Field and frame.Remove then
-				-- Three parents up from a row: the list's scroll child, its scroll frame, and
-				-- the container mini:List's viewport is sized to.
-				return frame:GetParent():GetParent():GetParent():GetHeight()
-			end
-		end
-
-		error("no styled row found for " .. count .. " keys")
 	end
 
-	fw.it("sizes the container to its rows, clamped at ten", function()
-		local short = InclusionsHeight(3)
-		local atCap = InclusionsHeight(10)
-		local pastCap = InclusionsHeight(12)
+	fw.it("builds one chip per bound key, in the inclusions and exclusions lists", function()
+		LoginWith({ Inclusions = { A = true }, Exclusions = { B = true } })
 
-		fw.truthy(short < atCap, "three rows is shorter than the capped height")
-		fw.eq(pastCap, atCap, "twelve rows stops growing once the cap is reached")
+		fw.eq(#AllChips(), 2, "one chip per list")
+	end)
+
+	fw.it("draws a chip carrying an added key's text", function()
+		LoginWith({ Inclusions = { ["CTRL-1"] = true }, Exclusions = {} })
+
+		local chip = FindChip("CTRL-1")
+
+		fw.not_nil(chip, "a chip for the bound key")
+		fw.eq(chip.Text:GetText(), "CTRL-1", "the chip shows the key's text")
+	end)
+
+	fw.it("removes a key when its chip's x is clicked", function()
+		LoginWith({ Inclusions = { ["CTRL-1"] = true }, Exclusions = {} })
+
+		local chip = FindChip("CTRL-1")
+		fw.not_nil(chip, "a chip for the bound key")
+
+		chip.Remove:Click()
+
+		local db = _G["MiniPressReleaseCharDB"]
+		fw.is_nil(db.Inclusions["CTRL-1"], "the key is gone from the saved variables")
+		fw.is_nil(FindChip("CTRL-1"), "the chip stops being drawn")
+	end)
+
+	fw.it("shows the empty-state line when no keys are bound", function()
+		LoginWith({ Inclusions = {}, Exclusions = {} })
+
+		local container = ContainerFor("A set of keybindings to include.")
+		local empty = FindRegion(container, "No keys added yet.")
+
+		fw.not_nil(empty, "the empty-state line exists")
+		fw.truthy(empty:IsShown(), "it shows when no keys are bound")
+	end)
+
+	fw.it("hides the empty-state line once a key is bound", function()
+		LoginWith({ Inclusions = { ["CTRL-1"] = true }, Exclusions = {} })
+
+		local container = ContainerFor("A set of keybindings to include.")
+		local empty = FindRegion(container, "No keys added yet.")
+
+		fw.not_nil(empty, "the empty-state line exists")
+		fw.falsy(empty:IsShown(), "it hides once a key is bound")
+	end)
+
+	fw.it("wraps a chip that will not fit onto the next line, back at the left edge", function()
+		---@param keys string[]
+		---@return table[] the chips drawn for these keys, in the order they were laid out
+		local function ChipsFor(keys)
+			local inclusions = {}
+
+			for _, key in ipairs(keys) do
+				inclusions[key] = true
+			end
+
+			LoginWith({ Inclusions = inclusions, Exclusions = {} })
+
+			return AllChips()
+		end
+
+		---@param chip table
+		---@return number x, number y
+		local function OffsetOf(chip)
+			local _, x, y = TopLeftPoint(chip)
+
+			return x, y
+		end
+
+		-- Each key is one narrow letter, so two fit the mock's default container width.
+		local chips = ChipsFor({ "A", "B", "C", "D" })
+		fw.eq(#chips, 4, "one chip per bound key")
+
+		local firstX, firstY = OffsetOf(chips[1])
+		local secondX, secondY = OffsetOf(chips[2])
+		local thirdX, thirdY = OffsetOf(chips[3])
+		local fourthX, fourthY = OffsetOf(chips[4])
+
+		fw.eq(secondY, firstY, "the second chip stays on the first line")
+		fw.truthy(secondX > firstX, "the second chip sits right of the first")
+
+		fw.eq(thirdX, firstX, "the third chip wraps back to the left edge")
+		fw.eq(thirdY, firstY - (CHIP_HEIGHT + CHIP_GAP_Y), "the third chip drops one line, not up or two")
+
+		fw.eq(fourthY, thirdY, "the fourth chip stays on the second line")
+		fw.truthy(fourthX > thirdX, "the fourth chip sits right of the third")
 	end)
 end)
 
@@ -190,19 +314,6 @@ fw.describe("MiniPressRelease - the filter mode", function()
 		local context = harness.Load("MiniPressRelease")
 
 		harness.Login(context)
-	end
-
-	---A filter list is only reachable through the description line the widget parented to it.
-	---@param text string
-	---@return table?
-	local function ContainerFor(text)
-		for _, frame in ipairs(WowMock.Frames) do
-			for _, region in ipairs({ frame:GetRegions() }) do
-				if region.GetText and region:GetText() == text then
-					return frame
-				end
-			end
-		end
 	end
 
 	---@return boolean? inclusions, boolean? exclusions
@@ -238,6 +349,46 @@ fw.describe("MiniPressRelease - the filter mode", function()
 
 		fw.falsy(inclusions, "the inclusions list stays hidden")
 		fw.truthy(exclusions, "the exclusions list shows")
+	end)
+
+	fw.it("anchors the off line and both filter lists to the Filter Mode label, not its control", function()
+		LoginWith({ Inclusions = {}, Exclusions = {} })
+
+		local panel = FindPanel("MiniPressRelease")
+		fw.not_nil(panel, "the settings panel")
+
+		local label = FindRegion(panel, "Filter Mode")
+		fw.not_nil(label, "the Filter Mode label")
+
+		local dropdown = FindControlFor(label)
+		fw.not_nil(dropdown, "the Filter Mode dropdown control")
+
+		local offLine = FindRegion(panel, "Every bound key gets the down and up behaviour.")
+		local inclusionsContainer = ContainerFor("A set of keybindings to include.")
+		local exclusionsContainer = ContainerFor("A set of keybindings to exclude.")
+
+		fw.not_nil(offLine, "the off line")
+		fw.not_nil(inclusionsContainer, "the inclusions list")
+		fw.not_nil(exclusionsContainer, "the exclusions list")
+
+		local offRelativeTo, _, offY = TopLeftPoint(offLine)
+		local inclusionsRelativeTo, _, inclusionsY = TopLeftPoint(inclusionsContainer)
+		local exclusionsRelativeTo, _, exclusionsY = TopLeftPoint(exclusionsContainer)
+
+		fw.eq(offRelativeTo, label, "the off line anchors to the label")
+		fw.eq(inclusionsRelativeTo, label, "the inclusions list anchors to the label")
+		fw.eq(exclusionsRelativeTo, label, "the exclusions list anchors to the label")
+
+		-- The dropdown control is taller than its label and centred on it, so a passing test
+		-- on a mock where the two heights matched would prove nothing about the drop.
+		local dropdownClearance = (dropdown:GetHeight() - label:GetStringHeight()) / 2
+		fw.truthy(dropdownClearance > 0, "the control is genuinely taller than its label")
+
+		local expectedY = -VERTICAL_SPACING - dropdownClearance
+
+		fw.eq(offY, expectedY, "the off line clears the dropdown control")
+		fw.eq(inclusionsY, expectedY, "the inclusions list clears the dropdown control")
+		fw.eq(exclusionsY, expectedY, "the exclusions list clears the dropdown control")
 	end)
 
 	fw.it("says nothing about combat when the panel opens mid fight", function()

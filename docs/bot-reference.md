@@ -66,8 +66,8 @@ The dropdown is stored as the two booleans below. Only one is ever true at once.
 Adding a key: with Include Mode or Exclude Mode chosen, click the box labelled "Click then
 press a key", press the key (or click a non-left mouse button in the box), then click
 "Add". Held CTRL/ALT/SHIFT modifiers are recorded as prefixes, e.g. "CTRL-SHIFT-F". Pure
-modifier presses, Enter and Backspace cannot be captured. Remove keys from the list with
-the remove button on each row.
+modifier presses, Enter and Backspace cannot be captured. Each added key is drawn as a
+chip. Click the x on a chip to remove it.
 
 In mouse mode, a button's overlay is active if the button has no key bound at all, or if
 any of its bound keys passes the filter.

@@ -3,7 +3,6 @@ local addonName, addon = ...
 local mini = addon.Framework
 local verticalSpacing = mini.VerticalSpacing
 local horizontalSpacing = mini.HorizontalSpacing
-local rowHeight = 22
 local firstColumnWidth = 200
 local secondColumnWidth = 100
 local CAPTURE_BOX_WIDTH = 180
@@ -11,13 +10,15 @@ local CAPTURE_BUTTON_WIDTH = 70
 local CAPTURE_GAP = 10
 -- The flattened field's border draws 6px left of the box's own frame.
 local CAPTURE_FIELD_INSET = 6
--- The capture zone and the list rows share a right edge.
-local LIST_ROW_WIDTH = CAPTURE_FIELD_INSET + CAPTURE_BOX_WIDTH + CAPTURE_GAP + CAPTURE_BUTTON_WIDTH
-local REMOVE_BUTTON_WIDTH = 70
+-- The capture zone and the description line share a right edge.
+local CAPTURE_ZONE_WIDTH = CAPTURE_FIELD_INSET + CAPTURE_BOX_WIDTH + CAPTURE_GAP + CAPTURE_BUTTON_WIDTH
 local CAPTURE_HEIGHT = 30
-local MAX_VISIBLE_ROWS = 10
--- mini:List leaves a 2px styled gap between rows.
-local LIST_ROW_STEP = rowHeight + 2
+local CHIP_HEIGHT = 20
+local CHIP_TEXT_INSET = 8
+local CHIP_REMOVE_SIZE = 14
+local CHIP_REMOVE_GAP = 4
+local CHIP_GAP_X = 6
+local CHIP_GAP_Y = 6
 local FILTER_MODES = { "off", "include", "exclude" }
 local FILTER_MODE_TEXT = {
 	off = "Off",
@@ -89,7 +90,7 @@ local function CreateCaptureZone(parent, onKeySelected)
 	local container = CreateFrame("Frame", nil, parent)
 	local capture = CreateFrame("EditBox", nil, container, "InputBoxTemplate")
 
-	container:SetSize(LIST_ROW_WIDTH, CAPTURE_HEIGHT)
+	container:SetSize(CAPTURE_ZONE_WIDTH, CAPTURE_HEIGHT)
 
 	mini:FlattenEditBox(capture)
 	capture:SetSize(CAPTURE_BOX_WIDTH, CAPTURE_HEIGHT)
@@ -211,6 +212,47 @@ local function CreateCaptureZone(parent, onKeySelected)
 	return container
 end
 
+---Builds one chip carrying the key text and a small x that removes it.
+---@param parent table
+---@param onRemove fun(key: string)
+---@return table chip
+local function CreateChip(parent, onRemove)
+	local chip = CreateFrame("Frame", nil, parent)
+	chip:SetHeight(CHIP_HEIGHT)
+
+	local field = mini.GUI.RoundedField(chip, CHIP_HEIGHT, "BACKGROUND")
+	field.Fill:SetColor(mini.GUI.FieldIdle.r, mini.GUI.FieldIdle.g, mini.GUI.FieldIdle.b, 0.9)
+	field.Border:SetColor(mini.GUI.LineIdle.r, mini.GUI.LineIdle.g, mini.GUI.LineIdle.b, 1)
+	chip.Field = field
+
+	chip.Text = chip:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+	chip.Text:SetPoint("LEFT", chip, "LEFT", CHIP_TEXT_INSET, 0)
+
+	chip.Remove = CreateFrame("Button", nil, chip)
+	chip.Remove:SetSize(CHIP_REMOVE_SIZE, CHIP_REMOVE_SIZE)
+	chip.Remove:SetPoint("LEFT", chip.Text, "RIGHT", CHIP_REMOVE_GAP, 0)
+
+	chip.Remove.Text = chip.Remove:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+	chip.Remove.Text:SetAllPoints()
+	chip.Remove.Text:SetJustifyH("CENTER")
+	chip.Remove.Text:SetText("x")
+
+	chip.Remove:SetScript("OnClick", function()
+		onRemove(chip.Key)
+	end)
+
+	return chip
+end
+
+---Sets a pooled chip's key and resizes it to the new text.
+---@param chip table
+---@param key string
+local function SetChipKey(chip, key)
+	chip.Key = key
+	chip.Text:SetText(key)
+	chip:SetWidth(CHIP_TEXT_INSET + chip.Text:GetStringWidth() + CHIP_REMOVE_GAP + CHIP_REMOVE_SIZE + CHIP_TEXT_INSET)
+end
+
 ---@param set table<string, boolean>
 ---@return string[]
 local function CollectKeys(set)
@@ -229,70 +271,95 @@ end
 ---@return FilterList
 local function CreateFilterList(parent, dbKey, description)
 	local container = CreateFrame("Frame", nil, parent)
-	-- Height is set by Resize, which is the only thing that knows how many rows there are.
-	container:SetWidth(LIST_ROW_WIDTH)
+	-- The chips flow across the panel's own width.
+	container:SetPoint("RIGHT", parent, "RIGHT", 0, 0)
 
 	local descriptionLine = mini:TextLine({
 		Parent = container,
 		Text = description,
-		Width = LIST_ROW_WIDTH,
+		Width = CAPTURE_ZONE_WIDTH,
 	})
 
 	descriptionLine:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
 
-	local list = mini:List({
-		Parent = container,
-		RowWidth = LIST_ROW_WIDTH,
-		RowHeight = rowHeight,
-		RemoveButtonWidth = REMOVE_BUTTON_WIDTH,
-		OnRemove = function(key)
-			charDb[dbKey][key] = nil
-			addon:Refresh()
-		end,
-	})
+	local chips = {}
+	local Refresh
 
 	local capture = CreateCaptureZone(container, function(keyString)
 		charDb[dbKey] = charDb[dbKey] or {}
 		charDb[dbKey][keyString] = true
 
-		list:SetItems(CollectKeys(charDb[dbKey]))
+		Refresh()
 		addon:Refresh()
 	end)
 
 	capture:SetPoint("TOPLEFT", descriptionLine, "BOTTOMLEFT", 0, -verticalSpacing / 2)
-	list.ScrollFrame:SetPoint("TOPLEFT", capture, "BOTTOMLEFT", 0, -verticalSpacing)
 
 	local emptyLine = mini:TextLine({
 		Parent = container,
 		Text = "No keys added yet.",
-		Width = LIST_ROW_WIDTH,
+		Width = CAPTURE_ZONE_WIDTH,
 	})
 
-	emptyLine:SetPoint("TOPLEFT", list.ScrollFrame, "TOPLEFT", 0, 0)
+	emptyLine:SetPoint("TOPLEFT", capture, "BOTTOMLEFT", 0, -verticalSpacing)
 
-	-- Sizing the container sizes the list viewport, because mini:List pins its scroll frame to
-	-- the container's bottom right.
-	local function Resize()
-		local body = next(charDb[dbKey]) == nil
-			and emptyLine:GetStringHeight()
-			or math.min(list.Content:GetHeight(), MAX_VISIBLE_ROWS * LIST_ROW_STEP)
-
-		container:SetHeight(descriptionLine:GetStringHeight()
-			+ verticalSpacing / 2
-			+ CAPTURE_HEIGHT
-			+ verticalSpacing
-			+ body)
+	local function RemoveKey(key)
+		charDb[dbKey][key] = nil
+		Refresh()
+		addon:Refresh()
 	end
 
-	local function Refresh()
-		list:SetItems(CollectKeys(charDb[dbKey]))
+	---Lays out one chip per key, wrapping to a new line once the next one would run past
+	---the available width.
+	---@param keys string[]
+	---@param availableWidth number
+	local function ReflowChips(keys, availableWidth)
+		local x, line = 0, 0
 
-		local empty = next(charDb[dbKey]) == nil
-		emptyLine:SetShown(empty)
-		list.ScrollFrame:SetShown(not empty)
+		for i, key in ipairs(keys) do
+			local chip = chips[i]
 
-		Resize()
+			if not chip then
+				chip = CreateChip(container, RemoveKey)
+				chips[i] = chip
+			end
+
+			SetChipKey(chip, key)
+
+			local chipWidth = chip:GetWidth()
+
+			if x > 0 and x + chipWidth > availableWidth then
+				x, line = 0, line + 1
+			end
+
+			chip:ClearAllPoints()
+			chip:SetPoint("TOPLEFT", capture, "BOTTOMLEFT", x, -verticalSpacing - line * (CHIP_HEIGHT + CHIP_GAP_Y))
+			chip:Show()
+
+			x = x + chipWidth + CHIP_GAP_X
+		end
+
+		for i = #keys + 1, #chips do
+			chips[i]:Hide()
+		end
 	end
+
+	Refresh = function()
+		local keys = CollectKeys(charDb[dbKey])
+		table.sort(keys)
+
+		emptyLine:SetShown(#keys == 0)
+
+		-- The panel has no width yet while its controls are being built.
+		local availableWidth = container:GetWidth()
+
+		if availableWidth > 0 then
+			ReflowChips(keys, availableWidth)
+		end
+	end
+
+	-- The re-flow needs the panel's width, which only arrives on the first resize.
+	container:SetScript("OnSizeChanged", Refresh)
 
 	Refresh()
 
@@ -421,21 +488,23 @@ function M:Init()
 
 	filterModeDropdown.Label:SetPoint("TOPLEFT", keybindingsDivider, "BOTTOMLEFT", 0, -verticalSpacing)
 
+	-- filterModeDropdown's control sits centred on its label and is taller, so anchoring to
+	-- the label needs this much extra drop to still clear the control.
+	local dropdownClearance = (filterModeDropdown:GetHeight() - filterModeDropdown.Label:GetStringHeight()) / 2
+
 	local offLine = mini:TextLine({
 		Parent = panel,
 		Text = "Every bound key gets the down and up behaviour.",
-		Width = LIST_ROW_WIDTH,
+		Width = CAPTURE_ZONE_WIDTH,
 	})
 
-	-- A dropdown is taller than its label and sits centred on it, so the body below clears
-	-- the control rather than the label.
-	offLine:SetPoint("TOPLEFT", filterModeDropdown, "BOTTOMLEFT", 0, -verticalSpacing)
+	offLine:SetPoint("TOPLEFT", filterModeDropdown.Label, "BOTTOMLEFT", 0, -verticalSpacing - dropdownClearance)
 
 	inclusions = CreateFilterList(panel, "Inclusions", "A set of keybindings to include.")
-	inclusions.Container:SetPoint("TOPLEFT", filterModeDropdown, "BOTTOMLEFT", 0, -verticalSpacing)
+	inclusions.Container:SetPoint("TOPLEFT", filterModeDropdown.Label, "BOTTOMLEFT", 0, -verticalSpacing - dropdownClearance)
 
 	exclusions = CreateFilterList(panel, "Exclusions", "A set of keybindings to exclude.")
-	exclusions.Container:SetPoint("TOPLEFT", filterModeDropdown, "BOTTOMLEFT", 0, -verticalSpacing)
+	exclusions.Container:SetPoint("TOPLEFT", filterModeDropdown.Label, "BOTTOMLEFT", 0, -verticalSpacing - dropdownClearance)
 
 	RefreshFilters = function()
 		local mode = "off"
@@ -451,7 +520,7 @@ function M:Init()
 		exclusions.Container:SetShown(mode == "exclude")
 
 		-- Both lists stay in step with the saved keys even while hidden, so switching a mode
-		-- back on never shows rows left over from before a reset.
+		-- back on never shows chips left over from before a reset.
 		inclusions.Refresh()
 		exclusions.Refresh()
 	end

@@ -413,8 +413,17 @@ function M:Init()
 	})
 
 	exclusionsEnabled:SetPoint("TOPLEFT", inclusionsEnabled, "TOPLEFT", col2X, 0)
-	inclusions:SetPoint("TOPLEFT", inclusionsEnabled, "BOTTOMLEFT", 4, -verticalSpacing / 2)
-	exclusions:SetPoint("TOPLEFT", inclusionsEnabled, "BOTTOMLEFT", 4, -verticalSpacing / 2)
+
+	local keybindingsDivider = mini:Divider({
+		Parent = panel,
+		Text = "Keybindings",
+	})
+
+	keybindingsDivider:SetPoint("TOPLEFT", inclusionsEnabled, "BOTTOMLEFT", 0, -verticalSpacing)
+	keybindingsDivider:SetPoint("RIGHT", panel, "RIGHT", 0, 0)
+
+	inclusions:SetPoint("TOPLEFT", keybindingsDivider, "BOTTOMLEFT", 4, -verticalSpacing)
+	exclusions:SetPoint("TOPLEFT", keybindingsDivider, "BOTTOMLEFT", 4, -verticalSpacing)
 
 	panel:SetScript("OnShow", function()
 		-- settings may have been changed elsewhere

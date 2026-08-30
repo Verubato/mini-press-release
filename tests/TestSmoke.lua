@@ -25,6 +25,7 @@ smoke.Run("MiniPressRelease", {
 		fw.eq(context.Addon.Framework.CustomStyling, true, "custom styling on")
 		fw.eq(context.Addon.Framework.CustomStylingOverrides.Button, false, "stock buttons")
 		fw.truthy(HasDivider("SETTINGS"), "the settings section rule under the header")
+		fw.truthy(HasDivider("KEYBINDINGS"), "the keybindings section rule above the grid")
 	end,
 })
 

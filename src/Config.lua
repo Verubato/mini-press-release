@@ -19,6 +19,10 @@ local CHIP_REMOVE_SIZE = 14
 local CHIP_REMOVE_GAP = 4
 local CHIP_GAP_X = 6
 local CHIP_GAP_Y = 6
+-- The group loot pass art is a red cross on every client this addon supports.
+local CHIP_REMOVE_TEXTURE = "Interface\\Buttons\\UI-GroupLoot-Pass-Up"
+local CHIP_REMOVE_TEXTURE_PUSHED = "Interface\\Buttons\\UI-GroupLoot-Pass-Down"
+local CHIP_REMOVE_TEXTURE_HIGHLIGHT = "Interface\\Buttons\\UI-GroupLoot-Pass-Highlight"
 local FILTER_MODES = { "off", "include", "exclude" }
 local FILTER_MODE_TEXT = {
 	off = "Off",
@@ -212,7 +216,7 @@ local function CreateCaptureZone(parent, onKeySelected)
 	return container
 end
 
----Builds one chip carrying the key text and a small x that removes it.
+---Builds one chip carrying the key text and a red cross that removes it.
 ---@param parent table
 ---@param onRemove fun(key: string)
 ---@return table chip
@@ -225,17 +229,20 @@ local function CreateChip(parent, onRemove)
 	field.Border:SetColor(mini.GUI.LineIdle.r, mini.GUI.LineIdle.g, mini.GUI.LineIdle.b, 1)
 	chip.Field = field
 
-	chip.Text = chip:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-	chip.Text:SetPoint("LEFT", chip, "LEFT", CHIP_TEXT_INSET, 0)
-
 	chip.Remove = CreateFrame("Button", nil, chip)
 	chip.Remove:SetSize(CHIP_REMOVE_SIZE, CHIP_REMOVE_SIZE)
-	chip.Remove:SetPoint("LEFT", chip.Text, "RIGHT", CHIP_REMOVE_GAP, 0)
+	chip.Remove:SetPoint("RIGHT", chip, "RIGHT", -CHIP_TEXT_INSET, 0)
+	chip.Remove:SetNormalTexture(CHIP_REMOVE_TEXTURE)
+	chip.Remove:SetPushedTexture(CHIP_REMOVE_TEXTURE_PUSHED)
+	chip.Remove:SetHighlightTexture(CHIP_REMOVE_TEXTURE_HIGHLIGHT, "ADD")
 
-	chip.Remove.Text = chip.Remove:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-	chip.Remove.Text:SetAllPoints()
-	chip.Remove.Text:SetJustifyH("CENTER")
-	chip.Remove.Text:SetText("x")
+	-- Every chip is the same width, so the label centres in whatever room the widest key left.
+	chip.Text = chip:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+	chip.Text:SetJustifyH("CENTER")
+	-- The longest key is given exactly its own width, so a rounding shortfall would wrap it.
+	chip.Text:SetWordWrap(false)
+	chip.Text:SetPoint("LEFT", chip, "LEFT", CHIP_TEXT_INSET, 0)
+	chip.Text:SetPoint("RIGHT", chip.Remove, "LEFT", -CHIP_REMOVE_GAP, 0)
 
 	chip.Remove:SetScript("OnClick", function()
 		onRemove(chip.Key)
@@ -244,13 +251,17 @@ local function CreateChip(parent, onRemove)
 	return chip
 end
 
----Sets a pooled chip's key and resizes it to the new text.
 ---@param chip table
 ---@param key string
 local function SetChipKey(chip, key)
 	chip.Key = key
 	chip.Text:SetText(key)
-	chip:SetWidth(CHIP_TEXT_INSET + chip.Text:GetStringWidth() + CHIP_REMOVE_GAP + CHIP_REMOVE_SIZE + CHIP_TEXT_INSET)
+end
+
+---@param chip table
+---@return number the width this chip would need to hold its own key
+local function ChipNaturalWidth(chip)
+	return CHIP_TEXT_INSET + chip.Text:GetStringWidth() + CHIP_REMOVE_GAP + CHIP_REMOVE_SIZE + CHIP_TEXT_INSET
 end
 
 ---@param set table<string, boolean>
@@ -315,18 +326,21 @@ local function CreateFilterList(parent, dbKey, description)
 	---@param availableWidth number
 	local function ReflowChips(keys, availableWidth)
 		local x, line = 0, 0
+		local chipWidth = 0
 
 		for i, key in ipairs(keys) do
-			local chip = chips[i]
-
-			if not chip then
-				chip = CreateChip(container, RemoveKey)
-				chips[i] = chip
+			if not chips[i] then
+				chips[i] = CreateChip(container, RemoveKey)
 			end
 
-			SetChipKey(chip, key)
+			SetChipKey(chips[i], key)
+			chipWidth = math.max(chipWidth, ChipNaturalWidth(chips[i]))
+		end
 
-			local chipWidth = chip:GetWidth()
+		for i = 1, #keys do
+			local chip = chips[i]
+
+			chip:SetWidth(chipWidth)
 
 			if x > 0 and x + chipWidth > availableWidth then
 				x, line = 0, line + 1

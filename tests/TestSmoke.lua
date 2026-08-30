@@ -8,9 +8,14 @@ local WowMock = require("WowMock")
 
 -- Mirrors mini.VerticalSpacing in src/Config.lua.
 local VERTICAL_SPACING = 16
--- Mirror CHIP_HEIGHT and CHIP_GAP_Y in src/Config.lua.
+-- Mirror CHIP_HEIGHT, CHIP_GAP_Y, CHIP_TEXT_INSET, CHIP_REMOVE_GAP, CHIP_REMOVE_SIZE and
+-- CHIP_REMOVE_TEXTURE in src/Config.lua.
 local CHIP_HEIGHT = 20
 local CHIP_GAP_Y = 6
+local CHIP_TEXT_INSET = 8
+local CHIP_REMOVE_GAP = 4
+local CHIP_REMOVE_SIZE = 14
+local CHIP_REMOVE_TEXTURE = "Interface\\Buttons\\UI-GroupLoot-Pass-Up"
 
 ---The section rule is built by the framework and never handed back to the addon, so a test
 ---finds it the way a player sees it, by its label.
@@ -230,7 +235,32 @@ fw.describe("MiniPressRelease - keybinding chips", function()
 		fw.eq(chip.Text:GetText(), "CTRL-1", "the chip shows the key's text")
 	end)
 
-	fw.it("removes a key when its chip's x is clicked", function()
+	fw.it("draws every chip at one width, set by the longest key", function()
+		LoginWith({ Inclusions = { ["1"] = true, ["CTRL-SHIFT-1"] = true }, Exclusions = {} })
+
+		local short = FindChip("1")
+		local long = FindChip("CTRL-SHIFT-1")
+
+		fw.not_nil(short, "a chip for the one character key")
+		fw.not_nil(long, "a chip for the modified key")
+
+		local widest = CHIP_TEXT_INSET + long.Text:GetStringWidth() + CHIP_REMOVE_GAP + CHIP_REMOVE_SIZE + CHIP_TEXT_INSET
+
+		fw.eq(short:GetWidth(), long:GetWidth(), "both chips are the same width")
+		fw.eq(long:GetWidth(), widest, "the shared width is the room the longest key needs")
+	end)
+
+	fw.it("draws the remove control as the red cross art, not a letter", function()
+		LoginWith({ Inclusions = { ["CTRL-1"] = true }, Exclusions = {} })
+
+		local chip = FindChip("CTRL-1")
+		fw.not_nil(chip, "a chip for the bound key")
+
+		fw.eq(chip.Remove:GetNormalTexture():GetTexture(), CHIP_REMOVE_TEXTURE, "the remove control wears the red cross")
+		fw.is_nil(chip.Remove.Text, "nothing draws a letter over it")
+	end)
+
+	fw.it("removes a key when its chip's red cross is clicked", function()
 		LoginWith({ Inclusions = { ["CTRL-1"] = true }, Exclusions = {} })
 
 		local chip = FindChip("CTRL-1")

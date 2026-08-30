@@ -67,7 +67,8 @@ Adding a key: with Include Mode or Exclude Mode chosen, click the box labelled "
 press a key", press the key (or click a non-left mouse button in the box), then click
 "Add". Held CTRL/ALT/SHIFT modifiers are recorded as prefixes, e.g. "CTRL-SHIFT-F". Pure
 modifier presses, Enter and Backspace cannot be captured. Each added key is drawn as a
-chip. Click the x on a chip to remove it.
+chip. Every chip in a list is drawn at the same width, set by the longest key in it. Click
+the red cross on a chip to remove it.
 
 In mouse mode, a button's overlay is active if the button has no key bound at all, or if
 any of its bound keys passes the filter.

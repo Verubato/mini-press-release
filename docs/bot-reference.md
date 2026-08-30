@@ -54,18 +54,20 @@ and key-up, the release press still fires. Credit for the idea goes to XyzKang.
 
 ### Include / Exclude filters
 
-Limit which keys get the down+up behaviour. Two mutually exclusive modes; enabling one
-automatically turns the other off:
+Limit which keys get the down+up behaviour, through one "Filter Mode" dropdown with three
+values:
 
+- "Off": every bound key gets the behaviour.
 - "Include Mode": ONLY keys in the inclusion list get down+up behaviour.
 - "Exclude Mode": ALL keys get it EXCEPT those in the exclusion list.
-- With both modes off, every bound key gets the behaviour.
 
-Adding a key: with the mode enabled, click the box labelled "Click then press a key",
-press the key (or click a non-left mouse button in the box), then click "Add". Held
-CTRL/ALT/SHIFT modifiers are recorded as prefixes, e.g. "CTRL-SHIFT-F". Pure modifier
-presses, Enter and Backspace cannot be captured. Remove keys from the list with the
-remove button on each row.
+The dropdown is stored as the two booleans below. Only one is ever true at once.
+
+Adding a key: with Include Mode or Exclude Mode chosen, click the box labelled "Click then
+press a key", press the key (or click a non-left mouse button in the box), then click
+"Add". Held CTRL/ALT/SHIFT modifiers are recorded as prefixes, e.g. "CTRL-SHIFT-F". Pure
+modifier presses, Enter and Backspace cannot be captured. Remove keys from the list with
+the remove button on each row.
 
 In mouse mode, a button's overlay is active if the button has no key bound at all, or if
 any of its bound keys passes the filter.
@@ -78,8 +80,7 @@ All settings are per character.
 |---|---|---|
 | Keyboard Enabled | ON | Enables the keyboard down+up behaviour |
 | Mouse Enabled | OFF | Enables the mouse click down+up overlays (Blizzard bars only) |
-| Include Mode | OFF | Only listed keys are affected; turning it on turns Exclude Mode off |
-| Exclude Mode | OFF | Listed keys are NOT affected; turning it on turns Include Mode off |
+| Filter Mode | Off | Off / Include Mode / Exclude Mode, stored as the two booleans below |
 | Inclusions list | empty | Keys used by Include Mode |
 | Exclusions list | empty | Keys used by Exclude Mode |
 
@@ -103,9 +104,9 @@ itself cannot be opened during combat.
   housing editor is active and restored when it closes.
 - "Double press doesn't happen on my vehicle bar": intentional since 2.6.0; override and
   vehicle bars fire on key-down only.
-- "A key I added to the list isn't being included/excluded": check the matching mode
-  checkbox ("Include Mode" / "Exclude Mode") is enabled; the lists only apply while their
-  mode is on. Keys are stored with modifiers, so "F" and "SHIFT-F" are different entries.
+- "A key I added to the list isn't being included/excluded": check the "Filter Mode"
+  dropdown is set to the matching mode; the lists only apply while their mode is chosen.
+  Keys are stored with modifiers, so "F" and "SHIFT-F" are different entries.
 - "Mouse clicks on my Bartender/ElvUI buttons don't double-fire": mouse mode only covers
   Blizzard action buttons. Keyboard mode covers addon bars via their key bindings.
 - "I can't drop a dragged spell onto my bars with mouse mode on": should work; overlays

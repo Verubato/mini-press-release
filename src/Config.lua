@@ -6,6 +6,24 @@ local horizontalSpacing = mini.HorizontalSpacing
 local rowHeight = 22
 local firstColumnWidth = 200
 local secondColumnWidth = 100
+local CAPTURE_BOX_WIDTH = 180
+local CAPTURE_BUTTON_WIDTH = 70
+local CAPTURE_GAP = 10
+-- The flattened field's border draws 6px left of the box's own frame.
+local CAPTURE_FIELD_INSET = 6
+-- The capture zone and the list rows share a right edge.
+local LIST_ROW_WIDTH = CAPTURE_FIELD_INSET + CAPTURE_BOX_WIDTH + CAPTURE_GAP + CAPTURE_BUTTON_WIDTH
+local REMOVE_BUTTON_WIDTH = 70
+local CAPTURE_HEIGHT = 30
+local MAX_VISIBLE_ROWS = 10
+-- mini:List leaves a 2px styled gap between rows.
+local LIST_ROW_STEP = rowHeight + 2
+local FILTER_MODES = { "off", "include", "exclude" }
+local FILTER_MODE_TEXT = {
+	off = "Off",
+	include = "Include Mode",
+	exclude = "Exclude Mode",
+}
 ---@type CharDb
 local charDb
 ---@class CharDb
@@ -66,26 +84,31 @@ local function NormaliseBindingKey(key)
 	return table.concat(parts, "-")
 end
 
-local function CreateCaptureZone(parent, editBoxWidth, buttonWidth, onKeySelected)
+local function CreateCaptureZone(parent, onKeySelected)
 	local placeholder = "Click then press a key"
 	local container = CreateFrame("Frame", nil, parent)
 	local capture = CreateFrame("EditBox", nil, container, "InputBoxTemplate")
 
-	container:SetSize(editBoxWidth + buttonWidth + horizontalSpacing, 30)
+	container:SetSize(LIST_ROW_WIDTH, CAPTURE_HEIGHT)
 
 	mini:FlattenEditBox(capture)
-	capture:SetSize(editBoxWidth, 30)
-	-- InputBoxTemplate has a built-in left inset of 4
-	capture:SetPoint("TOPLEFT", container, "TOPLEFT", 4, 0)
+	capture:SetSize(CAPTURE_BOX_WIDTH, CAPTURE_HEIGHT)
+	capture:SetPoint("TOPLEFT", container, "TOPLEFT", CAPTURE_FIELD_INSET, 0)
 	capture:SetAutoFocus(false)
-	capture:SetText(placeholder)
-	capture:SetCursorPosition(0)
 	capture:EnableMouse(true)
 
 	local pendingKey
+	local addBtn
 
 	local function SetDisplay(text)
-		capture:SetText(text or placeholder)
+		if text then
+			capture:SetText(text)
+			capture:SetTextColor(1, 1, 1, 1)
+		else
+			capture:SetText(placeholder)
+			capture:SetTextColor(0.5, 0.5, 0.5, 1)
+		end
+
 		capture:SetCursorPosition(0)
 		capture:HighlightText(0, 0)
 	end
@@ -93,6 +116,7 @@ local function CreateCaptureZone(parent, editBoxWidth, buttonWidth, onKeySelecte
 	local function SetPendingKey(keyString)
 		pendingKey = keyString
 		SetDisplay(keyString)
+		addBtn:SetEnabled(pendingKey ~= nil)
 	end
 
 	-- don't allow user-typed characters to appear
@@ -123,14 +147,17 @@ local function CreateCaptureZone(parent, editBoxWidth, buttonWidth, onKeySelecte
 
 	capture:SetScript("OnKeyDown", function(_, key)
 		local normalised = NormaliseBindingKey(key)
+
 		if normalised then
 			SetPendingKey(normalised)
-		else
-			pendingKey = nil
-			capture:SetText("")
-			capture:SetCursorPosition(0)
-			capture:HighlightText(0, 0)
+			return
 		end
+
+		pendingKey = nil
+		addBtn:SetEnabled(false)
+		capture:SetText("")
+		capture:SetCursorPosition(0)
+		capture:HighlightText(0, 0)
 	end)
 
 	capture:SetScript("OnKeyUp", function()
@@ -160,10 +187,10 @@ local function CreateCaptureZone(parent, editBoxWidth, buttonWidth, onKeySelecte
 		end
 	end)
 
-	local addBtn = mini:Button({
+	addBtn = mini:Button({
 		Parent = container,
 		Text = "Add",
-		Width = buttonWidth,
+		Width = CAPTURE_BUTTON_WIDTH,
 		Height = 26,
 		OnClick = function()
 			if not pendingKey then
@@ -176,107 +203,100 @@ local function CreateCaptureZone(parent, editBoxWidth, buttonWidth, onKeySelecte
 		end,
 	})
 
-	addBtn:SetPoint("LEFT", capture, "RIGHT", horizontalSpacing - 4, 0)
+	addBtn:SetPoint("LEFT", capture, "RIGHT", CAPTURE_GAP, 0)
+
+	-- Add is dead until there is something to add.
+	SetPendingKey(nil)
 
 	return container
 end
 
-local function CreateInclusions(parent)
-	local container = CreateFrame("Frame", nil, parent)
-	container:SetSize(firstColumnWidth + secondColumnWidth + horizontalSpacing * 2, 400)
-
-	local description = mini:TextLine({
-		Parent = container,
-		Text = "A set of keybindings to include.",
-	})
-
-	description:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
-
-	local list = mini:List({
-		Parent = container,
-		RowWidth = firstColumnWidth + secondColumnWidth + horizontalSpacing,
-		RowHeight = rowHeight,
-		RemoveButtonWidth = secondColumnWidth,
-		OnRemove = function(key)
-			charDb.Inclusions[key] = nil
-			addon:Refresh()
-		end,
-	})
-
-	local capture = CreateCaptureZone(container, firstColumnWidth, secondColumnWidth, function(keyString)
-		charDb.Inclusions = charDb.Inclusions or {}
-		charDb.Inclusions[keyString] = true
-
-		local keys = {}
-		for k in pairs(charDb.Inclusions) do
-			table.insert(keys, k)
-		end
-
-		list:SetItems(keys)
-		addon:Refresh()
-	end)
-
-	capture:SetPoint("TOPLEFT", description, "BOTTOMLEFT", 0, -verticalSpacing / 2)
-
-	list.ScrollFrame:SetPoint("TOPLEFT", capture, "BOTTOMLEFT", 0, -verticalSpacing)
-
+---@param set table<string, boolean>
+---@return string[]
+local function CollectKeys(set)
 	local keys = {}
-	for k in pairs(charDb.Inclusions) do
-		table.insert(keys, k)
+
+	for key in pairs(set) do
+		table.insert(keys, key)
 	end
 
-	list:SetItems(keys)
-
-	return container
+	return keys
 end
 
-local function CreateExclusions(parent)
+---@param parent table
+---@param dbKey string charDb field holding the key set, "Inclusions" or "Exclusions"
+---@param description string
+---@return FilterList
+local function CreateFilterList(parent, dbKey, description)
 	local container = CreateFrame("Frame", nil, parent)
-	container:SetSize(firstColumnWidth + secondColumnWidth + horizontalSpacing * 2, 400)
+	-- Height is set by Resize, which is the only thing that knows how many rows there are.
+	container:SetWidth(LIST_ROW_WIDTH)
 
-	local description = mini:TextLine({
+	local descriptionLine = mini:TextLine({
 		Parent = container,
-		Text = "A set of keybindings to exclude.",
+		Text = description,
+		Width = LIST_ROW_WIDTH,
 	})
 
-	description:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
+	descriptionLine:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
 
 	local list = mini:List({
 		Parent = container,
-		RowWidth = firstColumnWidth + secondColumnWidth + horizontalSpacing,
+		RowWidth = LIST_ROW_WIDTH,
 		RowHeight = rowHeight,
-		RemoveButtonWidth = secondColumnWidth,
+		RemoveButtonWidth = REMOVE_BUTTON_WIDTH,
 		OnRemove = function(key)
-			charDb.Exclusions[key] = nil
+			charDb[dbKey][key] = nil
 			addon:Refresh()
 		end,
 	})
 
-	local capture = CreateCaptureZone(container, firstColumnWidth, secondColumnWidth, function(keyString)
-		charDb.Exclusions = charDb.Exclusions or {}
-		charDb.Exclusions[keyString] = true
+	local capture = CreateCaptureZone(container, function(keyString)
+		charDb[dbKey] = charDb[dbKey] or {}
+		charDb[dbKey][keyString] = true
 
-		local keys = {}
-		for k in pairs(charDb.Exclusions) do
-			table.insert(keys, k)
-		end
-
-		list:SetItems(keys)
+		list:SetItems(CollectKeys(charDb[dbKey]))
 		addon:Refresh()
 	end)
 
-	capture:SetPoint("TOPLEFT", description, "BOTTOMLEFT", 0, -verticalSpacing / 2)
-
+	capture:SetPoint("TOPLEFT", descriptionLine, "BOTTOMLEFT", 0, -verticalSpacing / 2)
 	list.ScrollFrame:SetPoint("TOPLEFT", capture, "BOTTOMLEFT", 0, -verticalSpacing)
 
-	local keys = {}
-	for k in pairs(charDb.Exclusions) do
-		table.insert(keys, k)
+	local emptyLine = mini:TextLine({
+		Parent = container,
+		Text = "No keys added yet.",
+		Width = LIST_ROW_WIDTH,
+	})
+
+	emptyLine:SetPoint("TOPLEFT", list.ScrollFrame, "TOPLEFT", 0, 0)
+
+	-- Sizing the container sizes the list viewport, because mini:List pins its scroll frame to
+	-- the container's bottom right.
+	local function Resize()
+		local body = next(charDb[dbKey]) == nil
+			and emptyLine:GetStringHeight()
+			or math.min(list.Content:GetHeight(), MAX_VISIBLE_ROWS * LIST_ROW_STEP)
+
+		container:SetHeight(descriptionLine:GetStringHeight()
+			+ verticalSpacing / 2
+			+ CAPTURE_HEIGHT
+			+ verticalSpacing
+			+ body)
 	end
 
-	list:SetItems(keys)
+	local function Refresh()
+		list:SetItems(CollectKeys(charDb[dbKey]))
 
-	return container
+		local empty = next(charDb[dbKey]) == nil
+		emptyLine:SetShown(empty)
+		list.ScrollFrame:SetShown(not empty)
+
+		Resize()
+	end
+
+	Refresh()
+
+	return { Container = container, Refresh = Refresh }
 end
 
 function M:Init()
@@ -363,82 +383,83 @@ function M:Init()
 
 	mouseEnabledChkBox:SetPoint("TOPLEFT", kbEnabledChkBox, "TOPLEFT", col2X, 0)
 
-	inclusions = CreateInclusions(panel)
-	exclusions = CreateExclusions(panel)
-
-	RefreshFilters = function()
-		if charDb.InclusionsEnabled then
-			inclusions:Show()
-		else
-			inclusions:Hide()
-		end
-
-		if charDb.ExclusionsEnabled then
-			exclusions:Show()
-		else
-			exclusions:Hide()
-		end
-
-		addon:Refresh()
-	end
-
-	local exclusionsEnabled
-	local inclusionsEnabled
-
-	inclusionsEnabled = mini:Checkbox({
-		Parent = panel,
-		LabelText = "Include Mode",
-		GetValue = function()
-			return charDb.InclusionsEnabled
-		end,
-		SetValue = function(value)
-			charDb.InclusionsEnabled = value
-
-			if value then
-				charDb.ExclusionsEnabled = false
-				exclusionsEnabled:MiniRefresh()
-			end
-
-			RefreshFilters()
-		end,
-	})
-
-	inclusionsEnabled:SetPoint("TOPLEFT", kbEnabledChkBox, "BOTTOMLEFT", 0, -verticalSpacing / 2)
-
-	exclusionsEnabled = mini:Checkbox({
-		Parent = panel,
-		LabelText = "Exclude Mode",
-		GetValue = function()
-			return charDb.ExclusionsEnabled
-		end,
-		SetValue = function(value)
-			charDb.ExclusionsEnabled = value
-
-			if value then
-				charDb.InclusionsEnabled = false
-				inclusionsEnabled:MiniRefresh()
-			end
-
-			RefreshFilters()
-		end,
-	})
-
-	exclusionsEnabled:SetPoint("TOPLEFT", inclusionsEnabled, "TOPLEFT", col2X, 0)
-
 	local keybindingsDivider = mini:Divider({
 		Parent = panel,
 		Text = "Keybindings",
 	})
 
-	keybindingsDivider:SetPoint("TOPLEFT", inclusionsEnabled, "BOTTOMLEFT", 0, -verticalSpacing)
+	keybindingsDivider:SetPoint("TOPLEFT", kbEnabledChkBox, "BOTTOMLEFT", 0, -verticalSpacing)
 	keybindingsDivider:SetPoint("RIGHT", panel, "RIGHT", 0, 0)
 
-	inclusions:SetPoint("TOPLEFT", keybindingsDivider, "BOTTOMLEFT", 4, -verticalSpacing)
-	exclusions:SetPoint("TOPLEFT", keybindingsDivider, "BOTTOMLEFT", 4, -verticalSpacing)
+	local filterModeDropdown = mini:Dropdown({
+		Parent = panel,
+		LabelText = "Filter Mode",
+		Items = FILTER_MODES,
+		Width = firstColumnWidth + secondColumnWidth,
+		GetValue = function()
+			if charDb.InclusionsEnabled then
+				return "include"
+			end
+
+			if charDb.ExclusionsEnabled then
+				return "exclude"
+			end
+
+			return "off"
+		end,
+		SetValue = function(mode)
+			charDb.InclusionsEnabled = mode == "include"
+			charDb.ExclusionsEnabled = mode == "exclude"
+
+			RefreshFilters()
+			addon:Refresh()
+		end,
+		GetText = function(mode)
+			return FILTER_MODE_TEXT[mode]
+		end,
+	})
+
+	filterModeDropdown.Label:SetPoint("TOPLEFT", keybindingsDivider, "BOTTOMLEFT", 0, -verticalSpacing)
+
+	local offLine = mini:TextLine({
+		Parent = panel,
+		Text = "Every bound key gets the down and up behaviour.",
+		Width = LIST_ROW_WIDTH,
+	})
+
+	-- A dropdown is taller than its label and sits centred on it, so the body below clears
+	-- the control rather than the label.
+	offLine:SetPoint("TOPLEFT", filterModeDropdown, "BOTTOMLEFT", 0, -verticalSpacing)
+
+	inclusions = CreateFilterList(panel, "Inclusions", "A set of keybindings to include.")
+	inclusions.Container:SetPoint("TOPLEFT", filterModeDropdown, "BOTTOMLEFT", 0, -verticalSpacing)
+
+	exclusions = CreateFilterList(panel, "Exclusions", "A set of keybindings to exclude.")
+	exclusions.Container:SetPoint("TOPLEFT", filterModeDropdown, "BOTTOMLEFT", 0, -verticalSpacing)
+
+	RefreshFilters = function()
+		local mode = "off"
+
+		if charDb.InclusionsEnabled then
+			mode = "include"
+		elseif charDb.ExclusionsEnabled then
+			mode = "exclude"
+		end
+
+		offLine:SetShown(mode == "off")
+		inclusions.Container:SetShown(mode == "include")
+		exclusions.Container:SetShown(mode == "exclude")
+
+		-- Both lists stay in step with the saved keys even while hidden, so switching a mode
+		-- back on never shows rows left over from before a reset.
+		inclusions.Refresh()
+		exclusions.Refresh()
+	end
 
 	panel:SetScript("OnShow", function()
 		-- settings may have been changed elsewhere
 		panel:MiniRefresh()
+		RefreshFilters()
 	end)
 
 	RefreshFilters()
@@ -449,3 +470,7 @@ function M:Init()
 		"/mpr",
 	})
 end
+
+---@class FilterList
+---@field Container table
+---@field Refresh fun()

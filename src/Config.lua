@@ -73,6 +73,7 @@ local function CreateCaptureZone(parent, editBoxWidth, buttonWidth, onKeySelecte
 
 	container:SetSize(editBoxWidth + buttonWidth + horizontalSpacing, 30)
 
+	mini:FlattenEditBox(capture)
 	capture:SetSize(editBoxWidth, 30)
 	-- InputBoxTemplate has a built-in left inset of 4
 	capture:SetPoint("TOPLEFT", container, "TOPLEFT", 4, 0)
@@ -159,20 +160,23 @@ local function CreateCaptureZone(parent, editBoxWidth, buttonWidth, onKeySelecte
 		end
 	end)
 
-	local addBtn = CreateFrame("Button", nil, container, "UIPanelButtonTemplate")
-	addBtn:SetSize(buttonWidth, 26)
+	local addBtn = mini:Button({
+		Parent = container,
+		Text = "Add",
+		Width = buttonWidth,
+		Height = 26,
+		OnClick = function()
+			if not pendingKey then
+				return
+			end
+
+			onKeySelected(pendingKey)
+			SetPendingKey(nil)
+			capture:ClearFocus()
+		end,
+	})
+
 	addBtn:SetPoint("LEFT", capture, "RIGHT", horizontalSpacing - 4, 0)
-	addBtn:SetText("Add")
-
-	addBtn:SetScript("OnClick", function()
-		if not pendingKey then
-			return
-		end
-
-		onKeySelected(pendingKey)
-		SetPendingKey(nil)
-		capture:ClearFocus()
-	end)
 
 	return container
 end
@@ -276,6 +280,9 @@ local function CreateExclusions(parent)
 end
 
 function M:Init()
+	-- A styled button clashes with the stock Blizzard art around it in the settings screen.
+	mini:SetCustomStyling(true, { Button = false })
+
 	charDb = mini:GetCharacterSavedVars(charDbDefaults)
 
 	local panel = CreateFrame("Frame")

@@ -294,12 +294,23 @@ function M:Init()
 		return
 	end
 
+	local inclusions, exclusions, RefreshFilters
+
 	local col2X = firstColumnWidth + horizontalSpacing
 	local header = mini:PanelHeader({
 		Parent = panel,
 		Description = "Increase your chance at landing spells.",
 		Gap = 8,
 		Divider = true,
+		Reset = {
+			OnAccept = function()
+				-- mini:ResetSavedVars only clears the account-wide <AddonName>DB, not this
+				-- addon's per-character table, so reset it here instead.
+				wipe(charDb)
+				mini:CopyTable(charDbDefaults, charDb)
+				RefreshFilters()
+			end,
+		},
 	})
 
 	local kbEnabledChkBox = mini:Checkbox({
@@ -352,10 +363,10 @@ function M:Init()
 
 	mouseEnabledChkBox:SetPoint("TOPLEFT", kbEnabledChkBox, "TOPLEFT", col2X, 0)
 
-	local inclusions = CreateInclusions(panel)
-	local exclusions = CreateExclusions(panel)
+	inclusions = CreateInclusions(panel)
+	exclusions = CreateExclusions(panel)
 
-	local function RefreshFilters()
+	RefreshFilters = function()
 		if charDb.InclusionsEnabled then
 			inclusions:Show()
 		else

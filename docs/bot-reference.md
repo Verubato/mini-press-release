@@ -75,7 +75,8 @@ any of its bound keys passes the filter.
 
 ## Settings reference
 
-All settings are per character.
+All settings are per character. The "Reset to Defaults" button in the panel header (top
+right, with a confirmation prompt) restores every setting below to its default.
 
 | UI label | Default | Effect |
 |---|---|---|

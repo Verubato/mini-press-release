@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.7.8
+
+- UI improvements.
+- Replaced the keybinding filter checkboxes with a filter mode dropdown.
+
 ## 2.7.7
 
 Reduced the work the shared framework code does on paths the addons use heavily.

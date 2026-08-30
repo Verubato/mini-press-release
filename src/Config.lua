@@ -299,6 +299,7 @@ function M:Init()
 		Parent = panel,
 		Description = "Increase your chance at landing spells.",
 		Gap = 8,
+		Divider = true,
 	})
 
 	local kbEnabledChkBox = mini:Checkbox({

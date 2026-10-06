@@ -12,8 +12,8 @@ and key-up, the release press still fires. Credit for the idea goes to XyzKang.
 
 | Item | Value |
 |---|---|
-| Version | 2.7.9 |
-| Interface versions (.toc) | 120100, 16101, 50504, 40402, 38002, 38000, 30405, 20506, 11509 (spans retail 12.1, WoW Forever 1.6.x, Mists Classic 5.5.x, Cata Classic 4.4.x, Wrath 3.4.x, TBC 2.5.6, Classic Era 1.15.x) |
+| Version | 2.7.10 |
+| Interface versions (.toc) | 120100, 16001, 50504, 40402, 38002, 38000, 30405, 20506, 11509 (spans retail 12.1, WoW Forever 1.60.x, Mists Classic 5.5.x, Cata Classic 4.4.x, Wrath 3.4.x, TBC 2.5.6, Classic Era 1.15.x) |
 | Saved variables | MiniPressReleaseCharDB, per character (settings are NOT shared across characters) |
 | Slash commands | /minipressrelease, /minipr, /mpr (all open the settings panel) |
 | Settings location | Game Menu -> Options -> AddOns -> MiniPressRelease |

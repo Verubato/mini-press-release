@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.7.10
+
+Fixed WoW Forever support.
+
 ## 2.7.9
 
 Added support for WoW Forever 1.6.1.
